@@ -1,0 +1,5 @@
+CREATE DATABASE IF NOT EXISTS angelix;
+
+CREATE USER IF NOT EXISTS angelix IDENTIFIED BY 'angelix';
+
+GRANT ALL ON angelix.* TO angelix;

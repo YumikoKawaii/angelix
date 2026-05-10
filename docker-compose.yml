@@ -1,0 +1,23 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.4-alpine
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # native protocol (used by the Go driver)
+      - "8123:8123"   # HTTP interface (curl / UI queries)
+    environment:
+      CLICKHOUSE_DB:       angelix
+      CLICKHOUSE_USER:     angelix
+      CLICKHOUSE_PASSWORD: angelix
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  clickhouse_data:
