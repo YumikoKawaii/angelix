@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/alecthomas/kong"
 
@@ -13,6 +14,7 @@ import (
 
 type CLI struct {
 	Init   InitCmd   `cmd:"" help:"Set up ~/.angelix/config.json interactively"`
+	Setup  SetupCmd  `cmd:"" help:"Download the claude binary into ~/.angelix/bin/claude"`
 	Status StatusCmd `cmd:"" help:"Check server connectivity and show usage metrics"`
 	Run    RunCmd    `cmd:"" default:"withargs" help:"Pass through to claude (default)"`
 }
@@ -20,6 +22,12 @@ type CLI struct {
 type InitCmd struct{}
 
 func (c *InitCmd) Run() error { return cli.Init() }
+
+type SetupCmd struct {
+	Version string `help:"Claude version to download (default: latest)" short:"v"`
+}
+
+func (c *SetupCmd) Run() error { return cli.Setup(c.Version) }
 
 type StatusCmd struct{}
 
@@ -32,7 +40,19 @@ type RunCmd struct {
 func (c *RunCmd) Run() error {
 	cfg, err := auth.LoadConfig()
 	if err != nil {
-		return err
+		if !auth.IsNotConfigured(err) {
+			return err
+		}
+		fmt.Println("Welcome to angelix — let's get you set up first.")
+		fmt.Println()
+		if err := cli.Init(); err != nil {
+			return err
+		}
+		fmt.Println()
+		cfg, err = auth.LoadConfig()
+		if err != nil {
+			return err
+		}
 	}
 	creds, err := auth.FetchCredentials(cfg.ServerURL, cfg.MemberToken)
 	if err != nil {
@@ -47,7 +67,21 @@ func (c *RunCmd) Run() error {
 	}))
 }
 
+// angelixCommands is the set of first arguments that angelix handles itself.
+// Anything else is forwarded to claude via the implicit "run" command.
+var angelixCommands = map[string]bool{
+	"init": true, "setup": true, "status": true, "run": true,
+	"--help": true, "-h": true, "help": true,
+}
+
 func main() {
+	// If the first argument isn't a known angelix subcommand, prepend "run"
+	// so that flags like --resume, --continue, etc. pass through to claude
+	// rather than being rejected by kong.
+	if len(os.Args) > 1 && !angelixCommands[os.Args[1]] {
+		os.Args = append([]string{os.Args[0], "run"}, os.Args[1:]...)
+	}
+
 	var k CLI
 	ctx := kong.Parse(&k,
 		kong.Name("angelix"),

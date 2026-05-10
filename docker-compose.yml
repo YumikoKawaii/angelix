@@ -28,7 +28,7 @@ services:
       ANGELIX_ADMIN_TOKEN:     ${ANGELIX_ADMIN_TOKEN:-secret}
       PORT:                    8080
       ANGELIX_DB:              /data/angelix.db
-      DEBUG:                   ${DEBUG:-0}
+      DEBUG:                   True
       CLICKHOUSE_ADDR:         clickhouse:9000
       CLICKHOUSE_DB:           angelix
       CLICKHOUSE_USER:         angelix

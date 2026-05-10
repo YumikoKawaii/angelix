@@ -269,24 +269,46 @@ function MemberRow({
 }
 
 function TokenCell({ token }: { token: string }) {
-  const [visible, setVisible] = useState(false)
-  const masked = token.slice(0, 8) + '••••••••'
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    navigator.clipboard.writeText(token)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
-    <span className="text-xs" style={{ color: 'var(--c-muted)' }}>
-      <span style={{ color: 'var(--c-text)' }}>{visible ? token : masked}</span>
+    <>
+      <span className="text-xs font-mono" style={{ color: 'var(--c-muted)' }}>
+        {token.slice(0, 8)}••••••••
+      </span>
       <button
-        onClick={() => setVisible(v => !v)}
+        onClick={() => setOpen(true)}
         className="ml-2 text-xs"
-        style={{
-          color: 'var(--c-cyan)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 0,
-        }}
+        style={{ color: 'var(--c-cyan)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
       >
-        [{visible ? 'HIDE' : 'SHOW'}]
+        [SHOW]
       </button>
-    </span>
+      {open && (
+        <Modal title="MEMBER TOKEN" onClose={() => setOpen(false)}>
+          <p className="text-xs tracking-wide mb-4" style={{ color: 'var(--c-muted)' }}>
+            // STORE SECURELY — DO NOT SHARE PUBLICLY
+          </p>
+          <div className="flex items-center gap-3 mb-5 px-3 py-2" style={{
+            background: 'rgba(0,255,225,0.04)',
+            border: '1px solid var(--c-border)',
+          }}>
+            <code className="flex-1 text-xs break-all" style={{ color: 'var(--c-cyan)' }}>
+              {token}
+            </code>
+            <button onClick={copy} className="hud-btn shrink-0" style={{ padding: '0.2rem 0.6rem' }}>
+              {copied ? '[COPIED]' : '[COPY]'}
+            </button>
+          </div>
+          <button onClick={() => setOpen(false)} className="hud-btn w-full">&gt; CLOSE</button>
+        </Modal>
+      )}
+    </>
   )
 }

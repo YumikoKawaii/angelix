@@ -17,17 +17,24 @@ type Span struct {
 	CacheReadTokens     int64
 	CacheCreationTokens int64
 	Model               string
+	ToolName            string
+	StopReason          string
+	UserPromptLength    int64
+	FiveHourUtilization float64
+	SevenDayUtilization float64
 }
 
 type SpanSummary struct {
-	MemberID            string
-	TotalSpans          int
-	ErrorSpans          int
-	InputTokens         int64
-	OutputTokens        int64
-	CacheReadTokens     int64
-	CacheCreationTokens int64
-	TopTools            []ToolStat
+	MemberID                string
+	TotalSpans              int
+	ErrorSpans              int
+	InputTokens             int64
+	OutputTokens            int64
+	CacheReadTokens         int64
+	CacheCreationTokens     int64
+	MaxFiveHourUtilization  float64
+	MaxSevenDayUtilization  float64
+	TopTools                []ToolStat
 }
 
 type ToolStat struct {

@@ -1,5 +1,6 @@
 .env
 bin/
+vendor/claude
 *.db
 *.duckdb
 web/node_modules/

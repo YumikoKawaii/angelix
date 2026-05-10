@@ -2,23 +2,50 @@ package exec
 
 import (
 	"fmt"
-	osexec "os/exec"
 	"os"
+	osexec "os/exec"
+	"path/filepath"
 	"syscall"
+
+	"github.com/YumikoKawaii/angelix/internal/patch"
 )
 
-// RunClaude replaces the current process with claude, inheriting stdin/stdout/stderr.
-// extraEnv entries are appended after the current environment so they take precedence.
+// RunClaude replaces the current process with the patched claude binary,
+// inheriting stdin/stdout/stderr. extraEnv entries take precedence over
+// the current environment.
 func RunClaude(args []string, extraEnv []string) error {
-	claudePath, err := osexec.LookPath("claude")
+	claudePath, err := resolveClaude()
 	if err != nil {
-		return fmt.Errorf("claude binary not found in PATH — is Claude Code installed?")
+		return err
 	}
 
-	argv := append([]string{"claude"}, args...)
-	env := append(os.Environ(), extraEnv...)
+	patched, err := patch.EnsurePatch(claudePath)
+	if err != nil {
+		// Non-fatal: fall back to unpatched binary so the user isn't blocked.
+		fmt.Fprintf(os.Stderr, "angelix: patch skipped (%v), running unpatched claude\n", err)
+		patched = claudePath
+	}
 
-	// syscall.Exec replaces the process in-place: PID stays the same,
-	// signals work naturally, and no zombie process is left behind.
-	return syscall.Exec(claudePath, argv, env)
+	argv := append([]string{patched}, args...)
+	env := append(os.Environ(), extraEnv...)
+	return syscall.Exec(patched, argv, env)
+}
+
+// resolveClaude returns the path to the claude binary to use.
+// It prefers the angelix-managed copy at ~/.angelix/bin/claude over whatever
+// is on PATH, so the version bundled by angelix is always used when present.
+func resolveClaude() (string, error) {
+	home, err := os.UserHomeDir()
+	if err == nil {
+		managed := filepath.Join(home, ".angelix", "bin", "claude")
+		if _, err := os.Stat(managed); err == nil {
+			return managed, nil
+		}
+	}
+
+	p, err := osexec.LookPath("claude")
+	if err != nil {
+		return "", fmt.Errorf("claude not found — run 'angelix setup' or install Claude Code manually")
+	}
+	return p, nil
 }

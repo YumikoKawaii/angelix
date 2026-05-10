@@ -86,13 +86,15 @@ func (s *Server) writeMetricsSummary(w http.ResponseWriter, memberID string) {
 		})
 	}
 	writeJSON(w, http.StatusOK, apitypes.MetricsSummaryResponse{
-		MemberID:            summary.MemberID,
-		TotalSpans:          summary.TotalSpans,
-		ErrorSpans:          summary.ErrorSpans,
-		InputTokens:         summary.InputTokens,
-		OutputTokens:        summary.OutputTokens,
-		CacheReadTokens:     summary.CacheReadTokens,
-		CacheCreationTokens: summary.CacheCreationTokens,
-		TopTools:            tools,
+		MemberID:               summary.MemberID,
+		TotalSpans:             summary.TotalSpans,
+		ErrorSpans:             summary.ErrorSpans,
+		InputTokens:            summary.InputTokens,
+		OutputTokens:           summary.OutputTokens,
+		CacheReadTokens:        summary.CacheReadTokens,
+		CacheCreationTokens:    summary.CacheCreationTokens,
+		MaxFiveHourUtilization: summary.MaxFiveHourUtilization,
+		MaxSevenDayUtilization: summary.MaxSevenDayUtilization,
+		TopTools:               tools,
 	})
 }

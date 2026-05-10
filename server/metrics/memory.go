@@ -50,6 +50,12 @@ func buildSummary(memberID string, spans []*model.Span) *model.SpanSummary {
 		summary.OutputTokens += sp.OutputTokens
 		summary.CacheReadTokens += sp.CacheReadTokens
 		summary.CacheCreationTokens += sp.CacheCreationTokens
+		if sp.FiveHourUtilization > summary.MaxFiveHourUtilization {
+			summary.MaxFiveHourUtilization = sp.FiveHourUtilization
+		}
+		if sp.SevenDayUtilization > summary.MaxSevenDayUtilization {
+			summary.MaxSevenDayUtilization = sp.SevenDayUtilization
+		}
 		if sp.IsError {
 			summary.ErrorSpans++
 		}

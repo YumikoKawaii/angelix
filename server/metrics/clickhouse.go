@@ -31,6 +31,11 @@ var chMigrations = []migrate.Migration{
 	{Version: 4, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_read_tokens Int64 DEFAULT 0`},
 	{Version: 5, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_creation_tokens Int64 DEFAULT 0`},
 	{Version: 6, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS model LowCardinality(String) DEFAULT ''`},
+	{Version: 7, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS five_hour_utilization Float64 DEFAULT 0`},
+	{Version: 8, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS seven_day_utilization Float64 DEFAULT 0`},
+	{Version: 9, SQL:  `ALTER TABLE spans ADD COLUMN IF NOT EXISTS tool_name LowCardinality(String) DEFAULT ''`},
+	{Version: 10, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS stop_reason LowCardinality(String) DEFAULT ''`},
+	{Version: 11, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS user_prompt_length Int64 DEFAULT 0`},
 }
 
 // ClickHouseConfig holds connection parameters.
@@ -84,7 +89,7 @@ func (c *ClickHouse) RecordSpans(memberID string, spans []*model.Span) error {
 	defer cancel()
 
 	batch, err := c.conn.PrepareBatch(ctx,
-		`INSERT INTO spans (member_id, trace_id, span_id, name, start_time, end_time, duration_ms, is_error, recorded_at, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, model)`,
+		`INSERT INTO spans (member_id, trace_id, span_id, name, start_time, end_time, duration_ms, is_error, recorded_at, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, model, five_hour_utilization, seven_day_utilization, tool_name, stop_reason, user_prompt_length)`,
 	)
 	if err != nil {
 		return fmt.Errorf("prepare batch: %w", err)
@@ -100,6 +105,8 @@ func (c *ClickHouse) RecordSpans(memberID string, spans []*model.Span) error {
 			memberID, sp.TraceID, sp.SpanID, sp.Name,
 			sp.StartTime, sp.EndTime, sp.DurationMs, isErr, now,
 			sp.InputTokens, sp.OutputTokens, sp.CacheReadTokens, sp.CacheCreationTokens, sp.Model,
+			sp.FiveHourUtilization, sp.SevenDayUtilization,
+			sp.ToolName, sp.StopReason, sp.UserPromptLength,
 		); err != nil {
 			return fmt.Errorf("batch append: %w", err)
 		}
@@ -114,13 +121,15 @@ func (c *ClickHouse) GetSpanSummary(memberID string) (*model.SpanSummary, error)
 	rows, err := c.conn.Query(ctx, `
 		SELECT
 			name,
-			count()                    AS cnt,
-			avg(duration_ms)           AS avg_ms,
-			sum(is_error)              AS errs,
-			sum(input_tokens)          AS input_tokens,
-			sum(output_tokens)         AS output_tokens,
-			sum(cache_read_tokens)     AS cache_read_tokens,
-			sum(cache_creation_tokens) AS cache_creation_tokens
+			count()                        AS cnt,
+			avg(duration_ms)               AS avg_ms,
+			sum(is_error)                  AS errs,
+			sum(input_tokens)              AS input_tokens,
+			sum(output_tokens)             AS output_tokens,
+			sum(cache_read_tokens)         AS cache_read_tokens,
+			sum(cache_creation_tokens)     AS cache_creation_tokens,
+			max(five_hour_utilization)     AS max_five_hour,
+			max(seven_day_utilization)     AS max_seven_day
 		FROM spans
 		WHERE member_id = ?
 		GROUP BY name
@@ -142,8 +151,10 @@ func (c *ClickHouse) GetSpanSummary(memberID string) (*model.SpanSummary, error)
 			outputTokens        int64
 			cacheReadTokens     int64
 			cacheCreationTokens int64
+			maxFiveHour         float64
+			maxSevenDay         float64
 		)
-		if err := rows.Scan(&name, &cnt, &avgMs, &errors, &inputTokens, &outputTokens, &cacheReadTokens, &cacheCreationTokens); err != nil {
+		if err := rows.Scan(&name, &cnt, &avgMs, &errors, &inputTokens, &outputTokens, &cacheReadTokens, &cacheCreationTokens, &maxFiveHour, &maxSevenDay); err != nil {
 			return nil, err
 		}
 		summary.TotalSpans += int(cnt)
@@ -152,6 +163,12 @@ func (c *ClickHouse) GetSpanSummary(memberID string) (*model.SpanSummary, error)
 		summary.OutputTokens += outputTokens
 		summary.CacheReadTokens += cacheReadTokens
 		summary.CacheCreationTokens += cacheCreationTokens
+		if maxFiveHour > summary.MaxFiveHourUtilization {
+			summary.MaxFiveHourUtilization = maxFiveHour
+		}
+		if maxSevenDay > summary.MaxSevenDayUtilization {
+			summary.MaxSevenDayUtilization = maxSevenDay
+		}
 		summary.TopTools = append(summary.TopTools, model.ToolStat{
 			Name:                name,
 			Count:               int(cnt),

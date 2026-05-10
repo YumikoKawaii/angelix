@@ -1,7 +1,27 @@
 package otlp
 
+import "encoding/json"
+
 // Minimal OTLP JSON types for traces.
 // Numeric timestamps are sent as decimal strings per the OTLP JSON spec.
+
+// FlexInt unmarshals an OTLP intValue that may arrive as either a quoted
+// decimal string ("123") or a bare JSON number (123).
+type FlexInt string
+
+func (f *FlexInt) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		*f = FlexInt(s)
+		return nil
+	}
+	// bare number — keep raw digits as a string
+	*f = FlexInt(data)
+	return nil
+}
 
 type TracesPayload struct {
 	ResourceSpans []ResourceSpan `json:"resourceSpans"`
@@ -37,8 +57,7 @@ type Attribute struct {
 
 type AttributeValue struct {
 	StringValue string  `json:"stringValue,omitempty"`
-	// OTLP JSON spec encodes int64 as a quoted decimal string to avoid JS precision loss.
-	IntValue    string  `json:"intValue,omitempty"`
+	IntValue    FlexInt `json:"intValue,omitempty"`
 	DoubleValue float64 `json:"doubleValue,omitempty"`
 }
 

@@ -64,7 +64,8 @@ func verify(serverURL, token string) error {
 	if resp.StatusCode == http.StatusUnauthorized {
 		return fmt.Errorf("invalid token")
 	}
-	if resp.StatusCode != http.StatusOK {
+	// 404 = valid token but no credential assigned yet — acceptable at init time
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		return fmt.Errorf("server returned %d", resp.StatusCode)
 	}
 	return nil

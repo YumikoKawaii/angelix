@@ -1,4 +1,4 @@
-.PHONY: build build-ui build-wrapper build-server install run-server dev test clean
+.PHONY: build build-ui build-wrapper build-server install setup-claude run-server dev test clean
 
 BIN_DIR := bin
 
@@ -12,6 +12,11 @@ build-wrapper:
 
 build-server: build-ui
 	go build -o $(BIN_DIR)/server ./cmd/server
+
+# Download the claude binary into ~/.angelix/bin/claude.
+# Pass VERSION=x.y.z to pin a specific release, e.g.:  make setup-claude VERSION=2.1.138
+setup-claude:
+	./scripts/download-claude.sh $(VERSION)
 
 install:
 	go install ./cmd/angelix ./cmd/server

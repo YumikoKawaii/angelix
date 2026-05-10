@@ -27,6 +27,9 @@ func FetchCredentials(serverURL, token string) (*apitypes.CredentialResponse, er
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, fmt.Errorf("invalid member token")
 	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("no credential assigned to your account — ask your admin to assign one")
+	}
 	if resp.StatusCode != http.StatusOK {
 		var errResp apitypes.ErrorResponse
 		_ = json.NewDecoder(resp.Body).Decode(&errResp)

@@ -62,14 +62,16 @@ type ToolStat struct {
 }
 
 type MetricsSummaryResponse struct {
-	MemberID            string     `json:"member_id"`
-	TotalSpans          int        `json:"total_spans"`
-	ErrorSpans          int        `json:"error_spans"`
-	InputTokens         int64      `json:"input_tokens"`
-	OutputTokens        int64      `json:"output_tokens"`
-	CacheReadTokens     int64      `json:"cache_read_tokens"`
-	CacheCreationTokens int64      `json:"cache_creation_tokens"`
-	TopTools            []ToolStat `json:"top_tools"`
+	MemberID                string     `json:"member_id"`
+	TotalSpans              int        `json:"total_spans"`
+	ErrorSpans              int        `json:"error_spans"`
+	InputTokens             int64      `json:"input_tokens"`
+	OutputTokens            int64      `json:"output_tokens"`
+	CacheReadTokens         int64      `json:"cache_read_tokens"`
+	CacheCreationTokens     int64      `json:"cache_creation_tokens"`
+	MaxFiveHourUtilization  float64    `json:"max_five_hour_utilization"`
+	MaxSevenDayUtilization  float64    `json:"max_seven_day_utilization"`
+	TopTools                []ToolStat `json:"top_tools"`
 }
 
 // Error

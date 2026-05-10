@@ -38,11 +38,16 @@ func ParseTraces(memberID string, data []byte) ([]*model.Span, error) {
 					DurationMs:          end.Sub(start).Milliseconds(),
 					IsError:             s.Status.Code == 2,
 					RecordedAt:          now,
-					InputTokens:         attrInt(attrs, "gen_ai.usage.input_tokens"),
-					OutputTokens:        attrInt(attrs, "gen_ai.usage.output_tokens"),
-					CacheReadTokens:     attrInt(attrs, "gen_ai.usage.cache_read_input_tokens"),
-					CacheCreationTokens: attrInt(attrs, "gen_ai.usage.cache_creation_input_tokens"),
-					Model:               attrStr(attrs, "gen_ai.request.model"),
+					InputTokens:         attrInt(attrs, "input_tokens"),
+					OutputTokens:        attrInt(attrs, "output_tokens"),
+					CacheReadTokens:     attrInt(attrs, "cache_read_tokens"),
+					CacheCreationTokens: attrInt(attrs, "cache_creation_tokens"),
+					Model:               attrStr(attrs, "model"),
+					ToolName:            attrStr(attrs, "tool_name"),
+					StopReason:          attrStr(attrs, "stop_reason"),
+					UserPromptLength:    attrInt(attrs, "user_prompt_length"),
+					FiveHourUtilization: attrDouble(attrs, "five_hour_utilization"),
+					SevenDayUtilization: attrDouble(attrs, "seven_day_utilization"),
 				})
 			}
 		}
@@ -63,12 +68,16 @@ func attrInt(attrs map[string]AttributeValue, key string) int64 {
 	if !ok || v.IntValue == "" {
 		return 0
 	}
-	n, _ := strconv.ParseInt(v.IntValue, 10, 64)
+	n, _ := strconv.ParseInt(string(v.IntValue), 10, 64)
 	return n
 }
 
 func attrStr(attrs map[string]AttributeValue, key string) string {
 	return attrs[key].StringValue
+}
+
+func attrDouble(attrs map[string]AttributeValue, key string) float64 {
+	return attrs[key].DoubleValue
 }
 
 func nanoStringToTime(s string) time.Time {

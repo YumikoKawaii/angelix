@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,11 @@ import (
 type Config struct {
 	ServerURL   string `json:"server_url"`
 	MemberToken string `json:"member_token"`
+}
+
+// IsNotConfigured reports whether err came from a missing config file.
+func IsNotConfigured(err error) bool {
+	return errors.Is(err, os.ErrNotExist)
 }
 
 func LoadConfig() (*Config, error) {
