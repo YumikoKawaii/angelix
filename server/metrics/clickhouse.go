@@ -8,29 +8,30 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 
+	"github.com/YumikoKawaii/angelix/server/migrate"
 	"github.com/YumikoKawaii/angelix/server/model"
 )
 
-const chSchema = `
-CREATE TABLE IF NOT EXISTS spans (
-    member_id            LowCardinality(String),
-    trace_id             String,
-    span_id              String,
-    name                 LowCardinality(String),
-    start_time           DateTime64(9, 'UTC'),
-    end_time             DateTime64(9, 'UTC'),
-    duration_ms          Int64,
-    is_error             UInt8,
-    recorded_at          DateTime64(3, 'UTC'),
-    input_tokens         Int64        DEFAULT 0,
-    output_tokens        Int64        DEFAULT 0,
-    cache_read_tokens    Int64        DEFAULT 0,
-    cache_creation_tokens Int64       DEFAULT 0,
-    model                LowCardinality(String) DEFAULT ''
-) ENGINE = MergeTree()
-ORDER BY (member_id, name, start_time)
-PARTITION BY toYYYYMM(start_time)
-`
+var chMigrations = []migrate.Migration{
+	{Version: 1, SQL: `CREATE TABLE IF NOT EXISTS spans (
+		member_id   LowCardinality(String),
+		trace_id    String,
+		span_id     String,
+		name        LowCardinality(String),
+		start_time  DateTime64(9, 'UTC'),
+		end_time    DateTime64(9, 'UTC'),
+		duration_ms Int64,
+		is_error    UInt8,
+		recorded_at DateTime64(3, 'UTC')
+	) ENGINE = MergeTree()
+	ORDER BY (member_id, name, start_time)
+	PARTITION BY toYYYYMM(start_time)`},
+	{Version: 2, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS input_tokens Int64 DEFAULT 0`},
+	{Version: 3, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS output_tokens Int64 DEFAULT 0`},
+	{Version: 4, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_read_tokens Int64 DEFAULT 0`},
+	{Version: 5, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_creation_tokens Int64 DEFAULT 0`},
+	{Version: 6, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS model LowCardinality(String) DEFAULT ''`},
+}
 
 // ClickHouseConfig holds connection parameters.
 // Fields carry kong tags so the struct can be embedded directly in a CLI/server config.
@@ -71,8 +72,9 @@ func NewClickHouse(cfg ClickHouseConfig) (*ClickHouse, error) {
 	if err := conn.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("clickhouse ping: %w", err)
 	}
-	if err := conn.Exec(ctx, chSchema); err != nil {
-		return nil, fmt.Errorf("clickhouse schema: %w", err)
+	if err := migrate.RunClickHouse(conn, chMigrations); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("clickhouse migrations: %w", err)
 	}
 	return &ClickHouse{conn: conn}, nil
 }

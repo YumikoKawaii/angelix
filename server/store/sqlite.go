@@ -6,19 +6,20 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/YumikoKawaii/angelix/server/migrate"
 	"github.com/YumikoKawaii/angelix/server/model"
 )
 
-const schema = `
-CREATE TABLE IF NOT EXISTS members (
-    id         TEXT PRIMARY KEY,
-    name       TEXT NOT NULL,
-    email      TEXT NOT NULL UNIQUE,
-    token      TEXT NOT NULL UNIQUE,
-    api_key    TEXT NOT NULL,
-    created_at DATETIME NOT NULL
-);
-`
+var migrations = []migrate.Migration{
+	{Version: 1, SQL: `CREATE TABLE IF NOT EXISTS members (
+		id         TEXT PRIMARY KEY,
+		name       TEXT NOT NULL,
+		email      TEXT NOT NULL UNIQUE,
+		token      TEXT NOT NULL UNIQUE,
+		api_key    TEXT NOT NULL,
+		created_at DATETIME NOT NULL
+	)`},
+}
 
 type SQLite struct {
 	db *sql.DB
@@ -30,8 +31,9 @@ func NewSQLite(path string) (*SQLite, error) {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(schema); err != nil {
-		return nil, fmt.Errorf("run schema: %w", err)
+	if err := migrate.Run(db, migrations); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("migrations: %w", err)
 	}
 	return &SQLite{db: db}, nil
 }

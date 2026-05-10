@@ -7,27 +7,28 @@ import (
 
 	_ "github.com/marcboeker/go-duckdb"
 
+	"github.com/YumikoKawaii/angelix/server/migrate"
 	"github.com/YumikoKawaii/angelix/server/model"
 )
 
-const duckSchema = `
-CREATE TABLE IF NOT EXISTS spans (
-    member_id             VARCHAR     NOT NULL,
-    trace_id              VARCHAR     NOT NULL,
-    span_id               VARCHAR     NOT NULL,
-    name                  VARCHAR     NOT NULL,
-    start_time            TIMESTAMPTZ NOT NULL,
-    end_time              TIMESTAMPTZ NOT NULL,
-    duration_ms           BIGINT      NOT NULL,
-    is_error              BOOLEAN     NOT NULL DEFAULT FALSE,
-    recorded_at           TIMESTAMPTZ NOT NULL,
-    input_tokens          BIGINT      NOT NULL DEFAULT 0,
-    output_tokens         BIGINT      NOT NULL DEFAULT 0,
-    cache_read_tokens     BIGINT      NOT NULL DEFAULT 0,
-    cache_creation_tokens BIGINT      NOT NULL DEFAULT 0,
-    model                 VARCHAR     NOT NULL DEFAULT ''
-);
-`
+var duckMigrations = []migrate.Migration{
+	{Version: 1, SQL: `CREATE TABLE IF NOT EXISTS spans (
+		member_id   VARCHAR     NOT NULL,
+		trace_id    VARCHAR     NOT NULL,
+		span_id     VARCHAR     NOT NULL,
+		name        VARCHAR     NOT NULL,
+		start_time  TIMESTAMPTZ NOT NULL,
+		end_time    TIMESTAMPTZ NOT NULL,
+		duration_ms BIGINT      NOT NULL,
+		is_error    BOOLEAN     NOT NULL DEFAULT FALSE,
+		recorded_at TIMESTAMPTZ NOT NULL
+	)`},
+	{Version: 2, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS input_tokens BIGINT NOT NULL DEFAULT 0`},
+	{Version: 3, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS output_tokens BIGINT NOT NULL DEFAULT 0`},
+	{Version: 4, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_read_tokens BIGINT NOT NULL DEFAULT 0`},
+	{Version: 5, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS cache_creation_tokens BIGINT NOT NULL DEFAULT 0`},
+	{Version: 6, SQL: `ALTER TABLE spans ADD COLUMN IF NOT EXISTS model VARCHAR NOT NULL DEFAULT ''`},
+}
 
 // DuckDBConfig holds connection parameters.
 // Fields carry kong tags so the struct can be embedded directly in a CLI/server config.
@@ -44,9 +45,9 @@ func NewDuckDB(cfg DuckDBConfig) (*DuckDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("duckdb open: %w", err)
 	}
-	if _, err := db.Exec(duckSchema); err != nil {
+	if err := migrate.Run(db, duckMigrations); err != nil {
 		_ = db.Close()
-		return nil, fmt.Errorf("duckdb schema: %w", err)
+		return nil, fmt.Errorf("duckdb migrations: %w", err)
 	}
 	return &DuckDB{db: db}, nil
 }
