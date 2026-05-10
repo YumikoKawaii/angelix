@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { auth } from './api/client'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
+import { Credentials } from './pages/Credentials'
 import { Members } from './pages/Members'
 import { Metrics } from './pages/Metrics'
 
@@ -22,6 +23,7 @@ export function App() {
       >
         <Route index element={<Navigate to="/members" replace />} />
         <Route path="/members" element={<Members />} />
+        <Route path="/credentials" element={<Credentials />} />
         <Route path="/metrics" element={<Metrics />} />
       </Route>
     </Routes>

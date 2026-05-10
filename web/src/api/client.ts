@@ -1,4 +1,11 @@
-import type { CreateMemberRequest, MemberResponse, MetricsSummaryResponse } from './types'
+import type {
+  AssignCredentialRequest,
+  CreateCredentialRequest,
+  CreateMemberRequest,
+  CredentialItem,
+  MemberResponse,
+  MetricsSummaryResponse,
+} from './types'
 
 const TOKEN_KEY = 'angelix_admin_token'
 
@@ -39,5 +46,25 @@ export const api = {
 
     metrics: (id: string): Promise<MetricsSummaryResponse> =>
       request(`/api/v1/members/${id}/metrics`),
+
+    listCredentials: (id: string): Promise<{ credentials: CredentialItem[] }> =>
+      request(`/api/v1/members/${id}/credentials`),
+
+    assignCredential: (id: string, data: AssignCredentialRequest): Promise<void> =>
+      request(`/api/v1/members/${id}/credentials`, { method: 'POST', body: JSON.stringify(data) }),
+
+    unassignCredential: (id: string, credId: string): Promise<void> =>
+      request(`/api/v1/members/${id}/credentials/${credId}`, { method: 'DELETE' }),
+  },
+
+  catalog: {
+    list: (): Promise<{ credentials: CredentialItem[] }> =>
+      request('/api/v1/catalog'),
+
+    create: (data: CreateCredentialRequest): Promise<CredentialItem> =>
+      request('/api/v1/catalog', { method: 'POST', body: JSON.stringify(data) }),
+
+    delete: (id: string): Promise<void> =>
+      request(`/api/v1/catalog/${id}`, { method: 'DELETE' }),
   },
 }

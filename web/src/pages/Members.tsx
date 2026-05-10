@@ -9,7 +9,7 @@ export function Members() {
   const [error, setError] = useState('')
 
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', api_key: '' })
+  const [form, setForm] = useState({ name: '', email: '' })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -37,7 +37,7 @@ export function Members() {
       const m = await api.members.create(form)
       setMembers(prev => [m, ...prev])
       setShowCreate(false)
-      setForm({ name: '', email: '', api_key: '' })
+      setForm({ name: '', email: '' })
       setNewToken(m.token)
     } catch (e) {
       setCreateError(String(e))
@@ -143,9 +143,8 @@ export function Members() {
         <Modal title="ENLIST MEMBER" onClose={() => setShowCreate(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
             {([
-              { field: 'name',    label: 'CALLSIGN',          type: 'text'     },
-              { field: 'email',   label: 'COMM ADDRESS',      type: 'text'     },
-              { field: 'api_key', label: 'ANTHROPIC API KEY', type: 'password' },
+              { field: 'name',  label: 'CALLSIGN',     type: 'text' },
+              { field: 'email', label: 'COMM ADDRESS', type: 'text' },
             ] as const).map(({ field, label, type }) => (
               <div key={field}>
                 <label className="hud-label">{label}</label>

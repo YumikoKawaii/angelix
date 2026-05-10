@@ -9,7 +9,21 @@ export interface MemberResponse {
 export interface CreateMemberRequest {
   name: string
   email: string
+}
+
+export interface CredentialItem {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface CreateCredentialRequest {
+  name: string
   api_key: string
+}
+
+export interface AssignCredentialRequest {
+  credential_id: string
 }
 
 export interface ToolStat {

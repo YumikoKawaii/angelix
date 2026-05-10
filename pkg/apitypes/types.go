@@ -2,18 +2,38 @@ package apitypes
 
 import "time"
 
-// Credential endpoints
+// Credential endpoints (wrapper-facing)
 
 type CredentialResponse struct {
 	APIKey string `json:"api_key"`
 }
 
+// Credential catalog (admin)
+
+type CreateCredentialRequest struct {
+	Name   string `json:"name"`
+	APIKey string `json:"api_key"`
+}
+
+type CredentialItem struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ListCredentialsResponse struct {
+	Credentials []CredentialItem `json:"credentials"`
+}
+
+type AssignCredentialRequest struct {
+	CredentialID string `json:"credential_id"`
+}
+
 // Member management endpoints
 
 type CreateMemberRequest struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	APIKey string `json:"api_key"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type MemberResponse struct {

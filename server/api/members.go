@@ -17,8 +17,8 @@ func (s *Server) handleCreateMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.Name == "" || req.Email == "" || req.APIKey == "" {
-		writeError(w, http.StatusBadRequest, "name, email and api_key are required")
+	if req.Name == "" || req.Email == "" {
+		writeError(w, http.StatusBadRequest, "name and email are required")
 		return
 	}
 
@@ -27,7 +27,6 @@ func (s *Server) handleCreateMember(w http.ResponseWriter, r *http.Request) {
 		Name:      req.Name,
 		Email:     req.Email,
 		Token:     newToken(32),
-		APIKey:    req.APIKey,
 		CreatedAt: time.Now().UTC(),
 	}
 	if err := s.store.CreateMember(member); err != nil {

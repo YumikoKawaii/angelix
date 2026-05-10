@@ -33,11 +33,19 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/v1/credentials", s.memberAuth(http.HandlerFunc(s.handleGetCredentials)))
 	s.mux.Handle("GET /api/v1/metrics", s.memberAuth(http.HandlerFunc(s.handleGetMetrics)))
 
-	// Admin-authenticated
+	// Admin — members
 	s.mux.Handle("POST /api/v1/members", s.adminAuth(http.HandlerFunc(s.handleCreateMember)))
 	s.mux.Handle("GET /api/v1/members", s.adminAuth(http.HandlerFunc(s.handleListMembers)))
 	s.mux.Handle("DELETE /api/v1/members/{id}", s.adminAuth(http.HandlerFunc(s.handleDeleteMember)))
 	s.mux.Handle("GET /api/v1/members/{id}/metrics", s.adminAuth(http.HandlerFunc(s.handleAdminGetMetrics)))
+	s.mux.Handle("GET /api/v1/members/{id}/credentials", s.adminAuth(http.HandlerFunc(s.handleListMemberCredentials)))
+	s.mux.Handle("POST /api/v1/members/{id}/credentials", s.adminAuth(http.HandlerFunc(s.handleAssignCredential)))
+	s.mux.Handle("DELETE /api/v1/members/{id}/credentials/{cred_id}", s.adminAuth(http.HandlerFunc(s.handleUnassignCredential)))
+
+	// Admin — credential catalog
+	s.mux.Handle("GET /api/v1/catalog", s.adminAuth(http.HandlerFunc(s.handleListCredentials)))
+	s.mux.Handle("POST /api/v1/catalog", s.adminAuth(http.HandlerFunc(s.handleCreateCredential)))
+	s.mux.Handle("DELETE /api/v1/catalog/{id}", s.adminAuth(http.HandlerFunc(s.handleDeleteCredential)))
 
 	// OTLP receiver — member-authenticated via Bearer token
 	s.mux.Handle("POST /otel/v1/traces", s.memberAuth(http.HandlerFunc(s.handleOTELTraces)))

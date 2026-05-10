@@ -2,8 +2,9 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { auth } from '../api/client'
 
 const navItems = [
-  { to: '/members', label: 'MEMBERS', idx: '01' },
-  { to: '/metrics', label: 'METRICS', idx: '02' },
+  { to: '/members',     label: 'MEMBERS',     idx: '01' },
+  { to: '/credentials', label: 'CREDENTIALS', idx: '02' },
+  { to: '/metrics',     label: 'METRICS',     idx: '03' },
 ]
 
 export function Layout() {
