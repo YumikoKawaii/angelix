@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"github.com/alecthomas/kong"
 
 	"github.com/YumikoKawaii/angelix/internal/auth"
 	"github.com/YumikoKawaii/angelix/internal/cli"
@@ -10,50 +9,33 @@ import (
 	"github.com/YumikoKawaii/angelix/internal/otel"
 )
 
-const usage = `Usage: angelix [command] [args...]
+type CLI struct {
+	Init   InitCmd   `cmd:"" help:"Set up ~/.angelix/config.json interactively"`
+	Status StatusCmd `cmd:"" help:"Check server connectivity and show usage metrics"`
+	Run    RunCmd    `cmd:"" default:"withargs" help:"Pass through to claude (default)"`
+}
 
-Commands:
-  init     Set up ~/.angelix/config.json interactively
-  status   Check server connectivity and show usage metrics
-  help     Show this message
+type InitCmd struct{}
 
-Anything else is passed directly to claude.
-`
+func (c *InitCmd) Run() error { return cli.Init() }
 
-func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "init":
-			if err := cli.Init(); err != nil {
-				fmt.Fprintf(os.Stderr, "angelix init: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		case "status":
-			if err := cli.Status(); err != nil {
-				fmt.Fprintf(os.Stderr, "angelix status: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		case "help", "--help", "-h":
-			fmt.Print(usage)
-			return
-		}
-	}
+type StatusCmd struct{}
 
+func (c *StatusCmd) Run() error { return cli.Status() }
+
+type RunCmd struct {
+	Args []string `arg:"" optional:"" passthrough:""`
+}
+
+func (c *RunCmd) Run() error {
 	cfg, err := auth.LoadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "angelix: %v\n", err)
-		fmt.Fprintf(os.Stderr, "run 'angelix init' to set up your config\n")
-		os.Exit(1)
+		return err
 	}
-
 	creds, err := auth.FetchCredentials(cfg.ServerURL, cfg.MemberToken)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "angelix: credential fetch failed: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-
 	extraEnv := append(
 		otel.BuildEnv(otel.Config{
 			ServerURL:   cfg.ServerURL,
@@ -61,9 +43,15 @@ func main() {
 		}),
 		"ANTHROPIC_API_KEY="+creds.APIKey,
 	)
+	return claudeexec.RunClaude(c.Args, extraEnv)
+}
 
-	if err := claudeexec.RunClaude(os.Args[1:], extraEnv); err != nil {
-		fmt.Fprintf(os.Stderr, "angelix: %v\n", err)
-		os.Exit(1)
-	}
+func main() {
+	var k CLI
+	ctx := kong.Parse(&k,
+		kong.Name("angelix"),
+		kong.Description("Claude Code wrapper — credential injection and usage telemetry"),
+		kong.UsageOnError(),
+	)
+	ctx.FatalIfErrorf(ctx.Run())
 }

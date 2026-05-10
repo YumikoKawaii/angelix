@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,43 +9,62 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/kong"
+
 	"github.com/YumikoKawaii/angelix/server/api"
 	"github.com/YumikoKawaii/angelix/server/metrics"
 	"github.com/YumikoKawaii/angelix/server/store"
 )
 
+var cfg struct {
+	AdminToken string `env:"ANGELIX_ADMIN_TOKEN" required:"" help:"Admin authentication token"`
+	Port       string `env:"PORT"                default:"8080"        help:"HTTP listen port"`
+	DB         string `env:"ANGELIX_DB"          default:"angelix.db"  help:"SQLite path for member store"`
+	Debug      bool   `env:"DEBUG"                                     help:"Enable debug logging"`
+
+	MetricsBackend string `env:"ANGELIX_METRICS_BACKEND" default:"clickhouse" enum:"clickhouse,duckdb" help:"Metrics storage backend"`
+
+	ClickHouseAddr     string `env:"CLICKHOUSE_ADDR"     default:"localhost:9000" help:"ClickHouse native address (host:port)"`
+	ClickHouseDB       string `env:"CLICKHOUSE_DB"       default:"angelix"        help:"ClickHouse database"`
+	ClickHouseUser     string `env:"CLICKHOUSE_USER"     default:"default"         help:"ClickHouse user"`
+	ClickHousePassword string `env:"CLICKHOUSE_PASSWORD" default:""               help:"ClickHouse password"`
+
+	DuckDBPath string `env:"DUCKDB_PATH" default:"metrics.duckdb" help:"DuckDB file path"`
+}
+
 func main() {
-	initLogger()
+	kong.Parse(&cfg,
+		kong.Name("angelix-server"),
+		kong.Description("Angelix credential and telemetry server"),
+		kong.UsageOnError(),
+	)
 
-	adminToken := requireEnv("ANGELIX_ADMIN_TOKEN")
+	initLogger(cfg.Debug)
 
-	port := envOr("PORT", "8080")
-	dbPath := envOr("ANGELIX_DB", "angelix.db")
-
-	memberStore, err := store.NewSQLite(dbPath)
+	memberStore, err := store.NewSQLite(cfg.DB)
 	if err != nil {
-		slog.Error("failed to open member db", "path", dbPath, "err", err)
+		slog.Error("failed to open member db", "path", cfg.DB, "err", err)
 		os.Exit(1)
 	}
 	defer memberStore.Close()
 
 	metricsStore, err := openMetricsStore()
 	if err != nil {
-		slog.Error("failed to open metrics store", "err", err)
+		slog.Error("failed to open metrics store", "backend", cfg.MetricsBackend, "err", err)
 		os.Exit(1)
 	}
 	defer metricsStore.Close()
 
 	srv := &http.Server{
-		Addr:         ":" + port,
-		Handler:      api.NewServer(memberStore, metricsStore, adminToken),
+		Addr:         ":" + cfg.Port,
+		Handler:      api.NewServer(memberStore, metricsStore, cfg.AdminToken),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
-		slog.Info("server started", "addr", srv.Addr)
+		slog.Info("server started", "addr", srv.Addr, "metrics_backend", cfg.MetricsBackend)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "err", err)
 			os.Exit(1)
@@ -66,52 +84,27 @@ func main() {
 	slog.Info("stopped")
 }
 
-// openMetricsStore reads ANGELIX_METRICS_BACKEND (default: clickhouse) and
-// instantiates the appropriate metrics.Store implementation.
 func openMetricsStore() (metrics.Store, error) {
-	backend := envOr("ANGELIX_METRICS_BACKEND", "clickhouse")
-
-	switch backend {
+	switch cfg.MetricsBackend {
 	case "clickhouse":
-		cfg := metrics.ClickHouseConfig{
-			Addr:     envOr("CLICKHOUSE_ADDR", "localhost:9000"),
-			Database: envOr("CLICKHOUSE_DB", "angelix"),
-			Username: envOr("CLICKHOUSE_USER", "default"),
-			Password: os.Getenv("CLICKHOUSE_PASSWORD"),
+		c := metrics.ClickHouseConfig{
+			Addr:     cfg.ClickHouseAddr,
+			Database: cfg.ClickHouseDB,
+			Username: cfg.ClickHouseUser,
+			Password: cfg.ClickHousePassword,
 		}
-		slog.Info("metrics backend: clickhouse", "addr", cfg.Addr, "db", cfg.Database)
-		return metrics.NewClickHouse(cfg)
-
-	case "duckdb":
-		path := envOr("DUCKDB_PATH", "metrics.duckdb")
-		slog.Info("metrics backend: duckdb", "path", path)
-		return metrics.NewDuckDB(path)
-
-	default:
-		return nil, fmt.Errorf("unknown ANGELIX_METRICS_BACKEND %q — use 'clickhouse' or 'duckdb'", backend)
+		slog.Info("metrics backend: clickhouse", "addr", c.Addr, "db", c.Database)
+		return metrics.NewClickHouse(c)
+	default: // duckdb
+		slog.Info("metrics backend: duckdb", "path", cfg.DuckDBPath)
+		return metrics.NewDuckDB(cfg.DuckDBPath)
 	}
 }
 
-func initLogger() {
+func initLogger(debug bool) {
 	level := slog.LevelInfo
-	if os.Getenv("DEBUG") == "1" {
+	if debug {
 		level = slog.LevelDebug
 	}
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
-}
-
-func requireEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		fmt.Fprintf(os.Stderr, "%s is required\n", key)
-		os.Exit(1)
-	}
-	return v
-}
-
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }
