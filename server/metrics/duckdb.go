@@ -24,12 +24,18 @@ CREATE TABLE IF NOT EXISTS spans (
 );
 `
 
+// DuckDBConfig holds connection parameters.
+// Fields carry kong tags so the struct can be embedded directly in a CLI/server config.
+type DuckDBConfig struct {
+	Path string `env:"DUCKDB_PATH" default:"metrics.duckdb" help:"DuckDB file path"`
+}
+
 type DuckDB struct {
 	db *sql.DB
 }
 
-func NewDuckDB(path string) (*DuckDB, error) {
-	db, err := sql.Open("duckdb", path)
+func NewDuckDB(cfg DuckDBConfig) (*DuckDB, error) {
+	db, err := sql.Open("duckdb", cfg.Path)
 	if err != nil {
 		return nil, fmt.Errorf("duckdb open: %w", err)
 	}

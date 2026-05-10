@@ -28,11 +28,12 @@ PARTITION BY toYYYYMM(start_time)
 `
 
 // ClickHouseConfig holds connection parameters.
+// Fields carry kong tags so the struct can be embedded directly in a CLI/server config.
 type ClickHouseConfig struct {
-	Addr     string // host:port, e.g. "localhost:9000"
-	Database string
-	Username string
-	Password string
+	Addr     string `env:"CLICKHOUSE_ADDR"     default:"localhost:9000" help:"ClickHouse native address (host:port)"`
+	Database string `env:"CLICKHOUSE_DB"       default:"angelix"        help:"ClickHouse database"`
+	Username string `env:"CLICKHOUSE_USER"     default:"default"         help:"ClickHouse user"`
+	Password string `env:"CLICKHOUSE_PASSWORD" default:""               help:"ClickHouse password"`
 }
 
 type ClickHouse struct {

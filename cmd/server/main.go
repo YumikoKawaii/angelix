@@ -17,19 +17,14 @@ import (
 )
 
 var cfg struct {
-	AdminToken string `env:"ANGELIX_ADMIN_TOKEN" required:"" help:"Admin authentication token"`
-	Port       string `env:"PORT"                default:"8080"        help:"HTTP listen port"`
-	DB         string `env:"ANGELIX_DB"          default:"angelix.db"  help:"SQLite path for member store"`
-	Debug      bool   `env:"DEBUG"                                     help:"Enable debug logging"`
-
+	AdminToken     string `env:"ANGELIX_ADMIN_TOKEN"     required:"" help:"Admin authentication token"`
+	Port           string `env:"PORT"                    default:"8080"       help:"HTTP listen port"`
+	DB             string `env:"ANGELIX_DB"              default:"angelix.db" help:"SQLite path for member store"`
+	Debug          bool   `env:"DEBUG"                                        help:"Enable debug logging"`
 	MetricsBackend string `env:"ANGELIX_METRICS_BACKEND" default:"clickhouse" enum:"clickhouse,duckdb" help:"Metrics storage backend"`
 
-	ClickHouseAddr     string `env:"CLICKHOUSE_ADDR"     default:"localhost:9000" help:"ClickHouse native address (host:port)"`
-	ClickHouseDB       string `env:"CLICKHOUSE_DB"       default:"angelix"        help:"ClickHouse database"`
-	ClickHouseUser     string `env:"CLICKHOUSE_USER"     default:"default"         help:"ClickHouse user"`
-	ClickHousePassword string `env:"CLICKHOUSE_PASSWORD" default:""               help:"ClickHouse password"`
-
-	DuckDBPath string `env:"DUCKDB_PATH" default:"metrics.duckdb" help:"DuckDB file path"`
+	ClickHouse metrics.ClickHouseConfig `embed:"" prefix:"clickhouse-"`
+	DuckDB     metrics.DuckDBConfig     `embed:"" prefix:"duckdb-"`
 }
 
 func main() {
@@ -87,17 +82,11 @@ func main() {
 func openMetricsStore() (metrics.Store, error) {
 	switch cfg.MetricsBackend {
 	case "clickhouse":
-		c := metrics.ClickHouseConfig{
-			Addr:     cfg.ClickHouseAddr,
-			Database: cfg.ClickHouseDB,
-			Username: cfg.ClickHouseUser,
-			Password: cfg.ClickHousePassword,
-		}
-		slog.Info("metrics backend: clickhouse", "addr", c.Addr, "db", c.Database)
-		return metrics.NewClickHouse(c)
+		slog.Info("metrics backend: clickhouse", "addr", cfg.ClickHouse.Addr, "db", cfg.ClickHouse.Database)
+		return metrics.NewClickHouse(cfg.ClickHouse)
 	default: // duckdb
-		slog.Info("metrics backend: duckdb", "path", cfg.DuckDBPath)
-		return metrics.NewDuckDB(cfg.DuckDBPath)
+		slog.Info("metrics backend: duckdb", "path", cfg.DuckDB.Path)
+		return metrics.NewDuckDB(cfg.DuckDB)
 	}
 }
 
