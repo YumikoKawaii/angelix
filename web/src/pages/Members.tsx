@@ -47,7 +47,7 @@ export function Members() {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete member "${name}"? This cannot be undone.`)) return
+    if (!confirm(`CONFIRM: Remove member "${name}" from registry?`)) return
     await api.members.delete(id)
     setMembers(prev => prev.filter(m => m.id !== id))
   }
@@ -61,58 +61,77 @@ export function Members() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold text-slate-900">Members</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
-          Add member
+      {/* Header */}
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <div className="text-xs tracking-widest" style={{ color: 'var(--c-muted)' }}>// DATABASE</div>
+          <h1 className="text-xl tracking-widest uppercase" style={{ color: 'var(--c-cyan)' }}>
+            MEMBER REGISTRY
+          </h1>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="hud-btn">
+          &gt;_ ENLIST MEMBER
         </button>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && (
+        <p className="text-sm tracking-widest" style={{ color: 'var(--c-muted)' }}>
+          {'> LOADING...'}
+        </p>
+      )}
+      {error && (
+        <p className="text-sm" style={{ color: 'var(--c-magenta)' }}>
+          ERR: {error}
+        </p>
+      )}
 
       {!loading && !error && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div
+          style={{
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border)',
+            boxShadow: '0 0 20px rgba(0,255,225,0.05)',
+            overflow: 'hidden',
+          }}
+        >
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                {['Name', 'Email', 'Token', 'Created', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-slate-600 text-xs uppercase tracking-wide">
+            <thead>
+              <tr
+                style={{
+                  borderBottom: '1px solid var(--c-border)',
+                  background: 'rgba(0,255,225,0.04)',
+                }}
+              >
+                {['IDENT', 'EMAIL', 'TOKEN', 'ENROLLED', 'OPS'].map(h => (
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3"
+                    style={{ fontSize: '0.65rem', letterSpacing: '0.14em', color: 'var(--c-cyan)' }}
+                  >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                    No members yet. Add one to get started.
+                  <td
+                    colSpan={5}
+                    className="px-4 py-10 text-center text-xs tracking-widest"
+                    style={{ color: 'var(--c-muted)' }}
+                  >
+                    // NO MEMBERS REGISTERED — ENLIST TO BEGIN
                   </td>
                 </tr>
               )}
-              {members.map(m => (
-                <tr key={m.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{m.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{m.email}</td>
-                  <td className="px-4 py-3">
-                    <TokenCell token={m.token} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {new Date(m.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(m.id, m.name)}
-                      className="text-xs text-red-600 hover:text-red-800 font-medium"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+              {members.map((m, i) => (
+                <MemberRow
+                  key={m.id}
+                  member={m}
+                  even={i % 2 === 0}
+                  onDelete={() => handleDelete(m.id, m.name)}
+                />
               ))}
             </tbody>
           </table>
@@ -121,37 +140,40 @@ export function Members() {
 
       {/* Create modal */}
       {showCreate && (
-        <Modal title="Add member" onClose={() => setShowCreate(false)}>
+        <Modal title="ENLIST MEMBER" onClose={() => setShowCreate(false)}>
           <form onSubmit={handleCreate} className="space-y-4">
-            {(['name', 'email', 'api_key'] as const).map(field => (
+            {([
+              { field: 'name',    label: 'CALLSIGN',          type: 'text'     },
+              { field: 'email',   label: 'COMM ADDRESS',      type: 'text'     },
+              { field: 'api_key', label: 'ANTHROPIC API KEY', type: 'password' },
+            ] as const).map(({ field, label, type }) => (
               <div key={field}>
-                <label className="block text-sm font-medium text-slate-700 mb-1 capitalize">
-                  {field === 'api_key' ? 'Anthropic API key' : field}
-                </label>
+                <label className="hud-label">{label}</label>
                 <input
-                  type={field === 'api_key' ? 'password' : 'text'}
+                  type={type}
                   value={form[field]}
                   onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
                   required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="hud-input"
                 />
               </div>
             ))}
-            {createError && <p className="text-sm text-red-600">{createError}</p>}
-            <div className="flex justify-end gap-2 pt-1">
+            {createError && (
+              <p className="text-xs" style={{ color: 'var(--c-magenta)' }}>
+                ERR: {createError}
+              </p>
+            )}
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900"
+                className="hud-btn-danger"
+                style={{ padding: '0.35rem 0.9rem' }}
               >
-                Cancel
+                [ABORT]
               </button>
-              <button
-                type="submit"
-                disabled={creating}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
-                {creating ? 'Creating…' : 'Create'}
+              <button type="submit" disabled={creating} className="hud-btn">
+                {creating ? '> PROCESSING...' : '> CONFIRM'}
               </button>
             </div>
           </form>
@@ -160,24 +182,30 @@ export function Members() {
 
       {/* Token reveal modal */}
       {newToken && (
-        <Modal title="Member created" onClose={() => setNewToken(null)}>
-          <p className="text-sm text-slate-600 mb-3">
-            Save this token — it won't be shown again.
+        <Modal title="ACCESS TOKEN ISSUED" onClose={() => setNewToken(null)}>
+          <p className="text-xs tracking-wide mb-4" style={{ color: 'var(--c-muted)' }}>
+            // STORE SECURELY — TOKEN WILL NOT BE SHOWN AGAIN
           </p>
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-4">
-            <code className="flex-1 text-xs text-slate-800 break-all">{newToken}</code>
+          <div
+            className="flex items-center gap-3 mb-5 px-3 py-2"
+            style={{
+              background: 'rgba(0,255,225,0.04)',
+              border: '1px solid var(--c-border)',
+            }}
+          >
+            <code className="flex-1 text-xs break-all" style={{ color: 'var(--c-cyan)' }}>
+              {newToken}
+            </code>
             <button
               onClick={copyToken}
-              className="shrink-0 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+              className="hud-btn shrink-0"
+              style={{ padding: '0.2rem 0.6rem' }}
             >
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? '[COPIED]' : '[COPY]'}
             </button>
           </div>
-          <button
-            onClick={() => setNewToken(null)}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-          >
-            Done
+          <button onClick={() => setNewToken(null)} className="hud-btn w-full">
+            &gt; CLOSE
           </button>
         </Modal>
       )}
@@ -185,17 +213,70 @@ export function Members() {
   )
 }
 
+function MemberRow({
+  member: m,
+  even,
+  onDelete,
+}: {
+  member: MemberResponse
+  even: boolean
+  onDelete: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+  const base = even ? 'transparent' : 'rgba(0,255,225,0.018)'
+
+  return (
+    <tr
+      style={{
+        borderBottom: '1px solid rgba(0,255,225,0.07)',
+        background: hovered ? 'rgba(0,255,225,0.05)' : base,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <td className="px-4 py-3" style={{ color: 'var(--c-text)' }}>
+        <span style={{ color: 'var(--c-cyan)', marginRight: '0.4rem' }}>◆</span>
+        {m.name}
+      </td>
+      <td className="px-4 py-3 text-xs" style={{ color: 'var(--c-muted)' }}>{m.email}</td>
+      <td className="px-4 py-3">
+        <TokenCell token={m.token} />
+      </td>
+      <td className="px-4 py-3 text-xs" style={{ color: 'var(--c-muted)' }}>
+        {new Date(m.created_at).toLocaleDateString()}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <button
+          onClick={onDelete}
+          className="hud-btn-danger"
+          style={{ padding: '0.2rem 0.55rem', fontSize: '0.65rem' }}
+        >
+          [REMOVE]
+        </button>
+      </td>
+    </tr>
+  )
+}
+
 function TokenCell({ token }: { token: string }) {
   const [visible, setVisible] = useState(false)
   const masked = token.slice(0, 8) + '••••••••'
   return (
-    <span className="font-mono text-xs text-slate-500">
-      {visible ? token : masked}
+    <span className="text-xs" style={{ color: 'var(--c-muted)' }}>
+      <span style={{ color: 'var(--c-text)' }}>{visible ? token : masked}</span>
       <button
         onClick={() => setVisible(v => !v)}
-        className="ml-2 text-indigo-500 hover:text-indigo-700"
+        className="ml-2 text-xs"
+        style={{
+          color: 'var(--c-cyan)',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+        }}
       >
-        {visible ? 'hide' : 'show'}
+        [{visible ? 'HIDE' : 'SHOW'}]
       </button>
     </span>
   )

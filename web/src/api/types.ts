@@ -17,11 +17,19 @@ export interface ToolStat {
   count: number
   avg_ms: number
   error_rate: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_creation_tokens: number
 }
 
 export interface MetricsSummaryResponse {
   member_id: string
   total_spans: number
   error_spans: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_creation_tokens: number
   top_tools: ToolStat[]
 }

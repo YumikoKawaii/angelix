@@ -1,3 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --c-bg:        #0a0a12;
+  --c-surface:   #0d1117;
+  --c-cyan:      #00ffe1;
+  --c-magenta:   #ff2d78;
+  --c-text:      #c9d1d9;
+  --c-muted:     #3d4451;
+  --c-border:    rgba(0, 255, 225, 0.28);
+  --c-border-hi: rgba(0, 255, 225, 0.65);
+}
+
+* {
+  font-family: 'Share Tech Mono', 'JetBrains Mono', 'Courier New', monospace;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  margin: 0;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@layer components {
+  .hud-panel {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    box-shadow: 0 0 16px rgba(0, 255, 225, 0.06), inset 0 0 12px rgba(0, 255, 225, 0.03);
+  }
+
+  .hud-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-cyan);
+    background: transparent;
+    border: 1px solid var(--c-border);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .hud-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 225, 0.08);
+    border-color: var(--c-border-hi);
+    box-shadow: 0 0 14px rgba(0, 255, 225, 0.22);
+  }
+  .hud-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .hud-btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    background: transparent;
+    border: 1px solid rgba(255, 45, 120, 0.32);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .hud-btn-danger:hover:not(:disabled) {
+    background: rgba(255, 45, 120, 0.08);
+    border-color: var(--c-magenta);
+    box-shadow: 0 0 14px rgba(255, 45, 120, 0.22);
+  }
+
+  .hud-input {
+    width: 100%;
+    background: rgba(0, 255, 225, 0.03);
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .hud-input:focus {
+    border-color: var(--c-border-hi);
+    box-shadow: 0 0 10px rgba(0, 255, 225, 0.18);
+    background: rgba(0, 255, 225, 0.05);
+  }
+  .hud-input::placeholder {
+    color: var(--c-muted);
+  }
+
+  .hud-label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-cyan);
+    margin-bottom: 0.35rem;
+  }
+}

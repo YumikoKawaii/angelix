@@ -2,8 +2,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { auth } from '../api/client'
 
 const navItems = [
-  { to: '/members', label: 'Members' },
-  { to: '/metrics', label: 'Metrics' },
+  { to: '/members', label: 'MEMBERS', idx: '01' },
+  { to: '/metrics', label: 'METRICS', idx: '02' },
 ]
 
 export function Layout() {
@@ -15,41 +15,65 @@ export function Layout() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="w-56 shrink-0 bg-slate-900 flex flex-col">
-        <div className="px-5 py-5 border-b border-slate-800">
-          <span className="text-white font-semibold tracking-wide">Angelix</span>
+    <div className="flex h-screen" style={{ background: 'var(--c-bg)' }}>
+      <aside
+        className="w-52 shrink-0 flex flex-col"
+        style={{
+          background: 'var(--c-surface)',
+          borderRight: '1px solid var(--c-border)',
+          boxShadow: '4px 0 24px rgba(0,255,225,0.04)',
+        }}
+      >
+        {/* Logo */}
+        <div className="px-5 py-5" style={{ borderBottom: '1px solid var(--c-border)' }}>
+          <div className="text-xs tracking-widest" style={{ color: 'var(--c-muted)' }}>// SYSTEM</div>
+          <div
+            className="text-xl tracking-widest uppercase mt-0.5"
+            style={{ color: 'var(--c-cyan)', textShadow: '0 0 12px rgba(0,255,225,0.55)' }}
+          >
+            ANGELIX
+          </div>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(({ to, label }) => (
+
+        {/* Nav */}
+        <nav className="flex-1 py-3">
+          {navItems.map(({ to, label, idx }) => (
             <NavLink
               key={to}
               to={to}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`
-              }
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.55rem 1.25rem',
+                fontSize: '0.75rem',
+                letterSpacing: '0.12em',
+                textDecoration: 'none',
+                color: isActive ? 'var(--c-cyan)' : 'var(--c-muted)',
+                background: isActive ? 'rgba(0,255,225,0.07)' : 'transparent',
+                borderLeft: isActive ? '2px solid var(--c-cyan)' : '2px solid transparent',
+                transition: 'all 0.15s',
+              })}
             >
+              <span style={{ fontSize: '0.6rem', color: 'var(--c-muted)' }}>{idx}</span>
               {label}
             </NavLink>
           ))}
         </nav>
-        <div className="px-3 py-4 border-t border-slate-800">
+
+        {/* Exit */}
+        <div className="px-4 py-4" style={{ borderTop: '1px solid var(--c-border)' }}>
           <button
             onClick={signOut}
-            className="w-full text-left px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="hud-btn-danger w-full"
+            style={{ padding: '0.4rem 0.75rem' }}
           >
-            Sign out
+            [EXIT SESSION]
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ background: 'var(--c-bg)' }}>
         <Outlet />
       </main>
     </div>

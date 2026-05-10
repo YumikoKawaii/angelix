@@ -18,41 +18,83 @@ export function Login() {
       navigate('/members')
     } catch {
       auth.clearToken()
-      setError('Invalid admin token.')
+      setError('ERR: AUTHENTICATION FAILED — INVALID TOKEN')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-slate-900 mb-1">Angelix</h1>
-        <p className="text-sm text-slate-500 mb-6">Sign in with your admin token.</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Admin token
-            </label>
-            <input
-              type="password"
-              value={token}
-              onChange={e => setToken(e.target.value)}
-              required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="••••••••"
-            />
+    <div
+      className="min-h-screen flex flex-col items-center justify-center"
+      style={{ background: 'var(--c-bg)' }}
+    >
+      <div className="w-full max-w-sm mx-4">
+        {/* Title */}
+        <div className="text-center mb-8">
+          <div className="text-xs tracking-widest mb-1" style={{ color: 'var(--c-muted)' }}>
+            // SECURE ACCESS TERMINAL
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading || !token}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+          <h1
+            className="text-4xl tracking-widest uppercase"
+            style={{ color: 'var(--c-cyan)', textShadow: '0 0 20px rgba(0,255,225,0.6)' }}
           >
-            {loading ? 'Verifying…' : 'Sign in'}
-          </button>
-        </form>
+            ANGELIX
+          </h1>
+        </div>
+
+        {/* Panel */}
+        <div
+          style={{
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border)',
+            boxShadow: '0 0 32px rgba(0,255,225,0.08)',
+            padding: '2rem',
+            position: 'relative',
+          }}
+        >
+          {/* Corner brackets */}
+          <span className="absolute top-0 left-0 text-sm leading-none select-none" style={{ color: 'var(--c-cyan)', padding: '4px' }}>┌</span>
+          <span className="absolute top-0 right-0 text-sm leading-none select-none" style={{ color: 'var(--c-cyan)', padding: '4px' }}>┐</span>
+          <span className="absolute bottom-0 left-0 text-sm leading-none select-none" style={{ color: 'var(--c-cyan)', padding: '4px' }}>└</span>
+          <span className="absolute bottom-0 right-0 text-sm leading-none select-none" style={{ color: 'var(--c-cyan)', padding: '4px' }}>┘</span>
+
+          <div className="text-xs tracking-widest mb-6" style={{ color: 'var(--c-cyan)' }}>
+            SYSTEM AUTHENTICATION
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="hud-label">Admin Token</label>
+              <input
+                type="password"
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                required
+                className="hud-input"
+                placeholder="••••••••••••"
+              />
+            </div>
+
+            {error && (
+              <p className="text-xs tracking-wide" style={{ color: 'var(--c-magenta)' }}>
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !token}
+              className="hud-btn w-full"
+            >
+              {loading ? '> VERIFYING...' : '> AUTHENTICATE'}
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-4 text-center text-xs tracking-widest" style={{ color: 'var(--c-muted)' }}>
+          AUTHORIZED ACCESS ONLY
+        </div>
       </div>
     </div>
   )
