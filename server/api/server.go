@@ -47,6 +47,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Catch-all: serve the embedded React SPA.
+	// Must be registered last — all /api/ and /otel/ routes take precedence.
+	s.mux.Handle("/", newUIHandler())
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

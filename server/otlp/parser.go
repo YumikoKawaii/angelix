@@ -27,21 +27,48 @@ func ParseTraces(memberID string, data []byte) ([]*model.Span, error) {
 				if start.IsZero() || end.IsZero() {
 					continue
 				}
+				attrs := indexAttrs(s.Attributes)
 				spans = append(spans, &model.Span{
-					MemberID:   memberID,
-					TraceID:    s.TraceID,
-					SpanID:     s.SpanID,
-					Name:       s.Name,
-					StartTime:  start,
-					EndTime:    end,
-					DurationMs: end.Sub(start).Milliseconds(),
-					IsError:    s.Status.Code == 2,
-					RecordedAt: now,
+					MemberID:            memberID,
+					TraceID:             s.TraceID,
+					SpanID:              s.SpanID,
+					Name:                s.Name,
+					StartTime:           start,
+					EndTime:             end,
+					DurationMs:          end.Sub(start).Milliseconds(),
+					IsError:             s.Status.Code == 2,
+					RecordedAt:          now,
+					InputTokens:         attrInt(attrs, "gen_ai.usage.input_tokens"),
+					OutputTokens:        attrInt(attrs, "gen_ai.usage.output_tokens"),
+					CacheReadTokens:     attrInt(attrs, "gen_ai.usage.cache_read_input_tokens"),
+					CacheCreationTokens: attrInt(attrs, "gen_ai.usage.cache_creation_input_tokens"),
+					Model:               attrStr(attrs, "gen_ai.request.model"),
 				})
 			}
 		}
 	}
 	return spans, nil
+}
+
+func indexAttrs(attrs []Attribute) map[string]AttributeValue {
+	m := make(map[string]AttributeValue, len(attrs))
+	for _, a := range attrs {
+		m[a.Key] = a.Value
+	}
+	return m
+}
+
+func attrInt(attrs map[string]AttributeValue, key string) int64 {
+	v, ok := attrs[key]
+	if !ok || v.IntValue == "" {
+		return 0
+	}
+	n, _ := strconv.ParseInt(v.IntValue, 10, 64)
+	return n
+}
+
+func attrStr(attrs map[string]AttributeValue, key string) string {
+	return attrs[key].StringValue
 }
 
 func nanoStringToTime(s string) time.Time {

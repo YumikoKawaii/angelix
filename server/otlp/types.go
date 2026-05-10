@@ -36,8 +36,10 @@ type Attribute struct {
 }
 
 type AttributeValue struct {
-	StringValue string `json:"stringValue,omitempty"`
-	IntValue    int64  `json:"intValue,omitempty"`
+	StringValue string  `json:"stringValue,omitempty"`
+	// OTLP JSON spec encodes int64 as a quoted decimal string to avoid JS precision loss.
+	IntValue    string  `json:"intValue,omitempty"`
+	DoubleValue float64 `json:"doubleValue,omitempty"`
 }
 
 // MetricsPayload is a minimal wrapper; full parsing deferred.
