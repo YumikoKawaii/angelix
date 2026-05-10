@@ -33,7 +33,7 @@ var migrations = []migrate.Migration{
 		PRIMARY KEY (member_id, credential_id)
 	)`},
 	{Version: 4, SQL: `ALTER TABLE credentials RENAME COLUMN api_key TO access_token`},
-	{Version: 5, SQL: `ALTER TABLE credentials ADD COLUMN IF NOT EXISTS refresh_token TEXT NOT NULL DEFAULT ''`},
+	{Version: 5, SQL: `ALTER TABLE credentials ADD COLUMN refresh_token TEXT NOT NULL DEFAULT ''`},
 }
 
 type SQLite struct {
