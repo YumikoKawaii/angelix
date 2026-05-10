@@ -13,7 +13,8 @@ COPY . .
 COPY --from=ui /app/web/dist ./web/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /bin/server ./cmd/server
 
-FROM gcr.io/distroless/static:nonroot
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata
 COPY --from=builder /bin/server /server
 EXPOSE 8080
 ENTRYPOINT ["/server"]
