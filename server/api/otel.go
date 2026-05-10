@@ -75,13 +75,24 @@ func (s *Server) writeMetricsSummary(w http.ResponseWriter, memberID string) {
 	tools := make([]apitypes.ToolStat, 0, len(summary.TopTools))
 	for _, t := range summary.TopTools {
 		tools = append(tools, apitypes.ToolStat{
-			Name: t.Name, Count: t.Count, AvgMs: t.AvgMs, ErrorRate: t.ErrorRate,
+			Name:                t.Name,
+			Count:               t.Count,
+			AvgMs:               t.AvgMs,
+			ErrorRate:           t.ErrorRate,
+			InputTokens:         t.InputTokens,
+			OutputTokens:        t.OutputTokens,
+			CacheReadTokens:     t.CacheReadTokens,
+			CacheCreationTokens: t.CacheCreationTokens,
 		})
 	}
 	writeJSON(w, http.StatusOK, apitypes.MetricsSummaryResponse{
-		MemberID:   summary.MemberID,
-		TotalSpans: summary.TotalSpans,
-		ErrorSpans: summary.ErrorSpans,
-		TopTools:   tools,
+		MemberID:            summary.MemberID,
+		TotalSpans:          summary.TotalSpans,
+		ErrorSpans:          summary.ErrorSpans,
+		InputTokens:         summary.InputTokens,
+		OutputTokens:        summary.OutputTokens,
+		CacheReadTokens:     summary.CacheReadTokens,
+		CacheCreationTokens: summary.CacheCreationTokens,
+		TopTools:            tools,
 	})
 }

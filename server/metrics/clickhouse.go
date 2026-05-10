@@ -13,15 +13,20 @@ import (
 
 const chSchema = `
 CREATE TABLE IF NOT EXISTS spans (
-    member_id   LowCardinality(String),
-    trace_id    String,
-    span_id     String,
-    name        LowCardinality(String),
-    start_time  DateTime64(9, 'UTC'),
-    end_time    DateTime64(9, 'UTC'),
-    duration_ms Int64,
-    is_error    UInt8,
-    recorded_at DateTime64(3, 'UTC')
+    member_id            LowCardinality(String),
+    trace_id             String,
+    span_id              String,
+    name                 LowCardinality(String),
+    start_time           DateTime64(9, 'UTC'),
+    end_time             DateTime64(9, 'UTC'),
+    duration_ms          Int64,
+    is_error             UInt8,
+    recorded_at          DateTime64(3, 'UTC'),
+    input_tokens         Int64        DEFAULT 0,
+    output_tokens        Int64        DEFAULT 0,
+    cache_read_tokens    Int64        DEFAULT 0,
+    cache_creation_tokens Int64       DEFAULT 0,
+    model                LowCardinality(String) DEFAULT ''
 ) ENGINE = MergeTree()
 ORDER BY (member_id, name, start_time)
 PARTITION BY toYYYYMM(start_time)
@@ -77,7 +82,7 @@ func (c *ClickHouse) RecordSpans(memberID string, spans []*model.Span) error {
 	defer cancel()
 
 	batch, err := c.conn.PrepareBatch(ctx,
-		`INSERT INTO spans (member_id, trace_id, span_id, name, start_time, end_time, duration_ms, is_error, recorded_at)`,
+		`INSERT INTO spans (member_id, trace_id, span_id, name, start_time, end_time, duration_ms, is_error, recorded_at, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, model)`,
 	)
 	if err != nil {
 		return fmt.Errorf("prepare batch: %w", err)
@@ -92,6 +97,7 @@ func (c *ClickHouse) RecordSpans(memberID string, spans []*model.Span) error {
 		if err := batch.Append(
 			memberID, sp.TraceID, sp.SpanID, sp.Name,
 			sp.StartTime, sp.EndTime, sp.DurationMs, isErr, now,
+			sp.InputTokens, sp.OutputTokens, sp.CacheReadTokens, sp.CacheCreationTokens, sp.Model,
 		); err != nil {
 			return fmt.Errorf("batch append: %w", err)
 		}
@@ -106,9 +112,13 @@ func (c *ClickHouse) GetSpanSummary(memberID string) (*model.SpanSummary, error)
 	rows, err := c.conn.Query(ctx, `
 		SELECT
 			name,
-			count()        AS cnt,
-			avg(duration_ms) AS avg_ms,
-			sum(is_error)  AS errs
+			count()                    AS cnt,
+			avg(duration_ms)           AS avg_ms,
+			sum(is_error)              AS errs,
+			sum(input_tokens)          AS input_tokens,
+			sum(output_tokens)         AS output_tokens,
+			sum(cache_read_tokens)     AS cache_read_tokens,
+			sum(cache_creation_tokens) AS cache_creation_tokens
 		FROM spans
 		WHERE member_id = ?
 		GROUP BY name
@@ -122,21 +132,33 @@ func (c *ClickHouse) GetSpanSummary(memberID string) (*model.SpanSummary, error)
 	summary := &model.SpanSummary{MemberID: memberID}
 	for rows.Next() {
 		var (
-			name   string
-			cnt    uint64
-			avgMs  float64
-			errors uint64
+			name                string
+			cnt                 uint64
+			avgMs               float64
+			errors              uint64
+			inputTokens         int64
+			outputTokens        int64
+			cacheReadTokens     int64
+			cacheCreationTokens int64
 		)
-		if err := rows.Scan(&name, &cnt, &avgMs, &errors); err != nil {
+		if err := rows.Scan(&name, &cnt, &avgMs, &errors, &inputTokens, &outputTokens, &cacheReadTokens, &cacheCreationTokens); err != nil {
 			return nil, err
 		}
 		summary.TotalSpans += int(cnt)
 		summary.ErrorSpans += int(errors)
+		summary.InputTokens += inputTokens
+		summary.OutputTokens += outputTokens
+		summary.CacheReadTokens += cacheReadTokens
+		summary.CacheCreationTokens += cacheCreationTokens
 		summary.TopTools = append(summary.TopTools, model.ToolStat{
-			Name:      name,
-			Count:     int(cnt),
-			AvgMs:     avgMs,
-			ErrorRate: float64(errors) / float64(cnt),
+			Name:                name,
+			Count:               int(cnt),
+			AvgMs:               avgMs,
+			ErrorRate:           float64(errors) / float64(cnt),
+			InputTokens:         inputTokens,
+			OutputTokens:        outputTokens,
+			CacheReadTokens:     cacheReadTokens,
+			CacheCreationTokens: cacheCreationTokens,
 		})
 	}
 	return summary, rows.Err()

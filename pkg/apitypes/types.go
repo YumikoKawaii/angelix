@@ -31,17 +31,25 @@ type ListMembersResponse struct {
 // Metrics
 
 type ToolStat struct {
-	Name      string  `json:"name"`
-	Count     int     `json:"count"`
-	AvgMs     float64 `json:"avg_ms"`
-	ErrorRate float64 `json:"error_rate"`
+	Name                string  `json:"name"`
+	Count               int     `json:"count"`
+	AvgMs               float64 `json:"avg_ms"`
+	ErrorRate           float64 `json:"error_rate"`
+	InputTokens         int64   `json:"input_tokens"`
+	OutputTokens        int64   `json:"output_tokens"`
+	CacheReadTokens     int64   `json:"cache_read_tokens"`
+	CacheCreationTokens int64   `json:"cache_creation_tokens"`
 }
 
 type MetricsSummaryResponse struct {
-	MemberID   string     `json:"member_id"`
-	TotalSpans int        `json:"total_spans"`
-	ErrorSpans int        `json:"error_spans"`
-	TopTools   []ToolStat `json:"top_tools"`
+	MemberID            string     `json:"member_id"`
+	TotalSpans          int        `json:"total_spans"`
+	ErrorSpans          int        `json:"error_spans"`
+	InputTokens         int64      `json:"input_tokens"`
+	OutputTokens        int64      `json:"output_tokens"`
+	CacheReadTokens     int64      `json:"cache_read_tokens"`
+	CacheCreationTokens int64      `json:"cache_creation_tokens"`
+	TopTools            []ToolStat `json:"top_tools"`
 }
 
 // Error
