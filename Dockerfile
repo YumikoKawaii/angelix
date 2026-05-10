@@ -5,17 +5,18 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM golang:1.25-alpine AS builder
-RUN apk add --no-cache gcc musl-dev
+FROM golang:1.25 AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ui /app/web/dist ./web/dist
-RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -o /bin/server ./cmd/server
+RUN CGO_ENABLED=1 go build -trimpath -o /bin/server ./cmd/server
 
-FROM alpine:3.21
-RUN apk add --no-cache ca-certificates tzdata
+FROM debian:bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates tzdata \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /bin/server /server
 EXPOSE 8080
 ENTRYPOINT ["/server"]
