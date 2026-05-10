@@ -14,9 +14,7 @@ install:
 	go install ./cmd/angelix ./cmd/server
 
 run-server:
-	ANGELIX_ADMIN_TOKEN=$${ANGELIX_ADMIN_TOKEN:?required} \
-	PORT=$${PORT:-8080} \
-	go run ./cmd/server
+	@set -a && . ./.env && set +a && go run ./cmd/server
 
 test:
 	go test ./...
