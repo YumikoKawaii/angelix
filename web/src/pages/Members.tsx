@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { MemberResponse } from '../api/types'
+import { ConfirmModal } from '../components/ConfirmModal'
 import { Modal } from '../components/Modal'
 
 export function Members() {
@@ -15,6 +16,8 @@ export function Members() {
 
   const [newToken, setNewToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null)
 
   async function load() {
     try {
@@ -46,8 +49,7 @@ export function Members() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`CONFIRM: Remove member "${name}" from registry?`)) return
+  async function handleDelete(id: string) {
     await api.members.delete(id)
     setMembers(prev => prev.filter(m => m.id !== id))
   }
@@ -130,7 +132,7 @@ export function Members() {
                   key={m.id}
                   member={m}
                   even={i % 2 === 0}
-                  onDelete={() => handleDelete(m.id, m.name)}
+                  onDelete={() => setConfirmDelete({ id: m.id, name: m.name })}
                 />
               ))}
             </tbody>
@@ -207,6 +209,14 @@ export function Members() {
             &gt; CLOSE
           </button>
         </Modal>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`Remove member "${confirmDelete.name}" from the registry?`}
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onClose={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { CredentialItem, MemberResponse } from '../api/types'
+import { ConfirmModal } from '../components/ConfirmModal'
 import { Modal } from '../components/Modal'
 
 export function Credentials() {
@@ -14,6 +15,7 @@ export function Credentials() {
   const [createError, setCreateError] = useState('')
 
   const [managing, setManaging] = useState<CredentialItem | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<CredentialItem | null>(null)
 
   async function load() {
     try {
@@ -44,8 +46,7 @@ export function Credentials() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`CONFIRM: Delete credential "${name}"? All assignments will be removed.`)) return
+  async function handleDelete(id: string) {
     await api.catalog.delete(id)
     setCreds(prev => prev.filter(c => c.id !== id))
   }
@@ -103,7 +104,7 @@ export function Credentials() {
                   key={c.id}
                   cred={c}
                   even={i % 2 === 0}
-                  onDelete={() => handleDelete(c.id, c.name)}
+                  onDelete={() => setConfirmDelete(c)}
                   onManage={() => setManaging(c)}
                 />
               ))}
@@ -157,6 +158,14 @@ export function Credentials() {
         <AssignModal
           cred={managing}
           onClose={() => setManaging(null)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`Delete credential "${confirmDelete.name}"? All member assignments will be removed.`}
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onClose={() => setConfirmDelete(null)}
         />
       )}
     </div>
