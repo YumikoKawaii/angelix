@@ -1,0 +1,7 @@
+bin/
+*.db
+*.duckdb
+web/node_modules/
+web/dist/
+.env
+.git/

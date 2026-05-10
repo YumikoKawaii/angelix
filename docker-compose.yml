@@ -3,8 +3,8 @@ services:
     image: clickhouse/clickhouse-server:25.4-alpine
     restart: unless-stopped
     ports:
-      - "9000:9000"   # native protocol (used by the Go driver)
-      - "8123:8123"   # HTTP interface (curl / UI queries)
+      - "9000:9000"
+      - "8123:8123"
     environment:
       CLICKHOUSE_DB:       angelix
       CLICKHOUSE_USER:     angelix
@@ -19,5 +19,33 @@ services:
       retries: 5
       start_period: 20s
 
+  server:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ANGELIX_ADMIN_TOKEN:     ${ANGELIX_ADMIN_TOKEN:-secret}
+      PORT:                    8080
+      ANGELIX_DB:              /data/angelix.db
+      DEBUG:                   ${DEBUG:-0}
+      ANGELIX_METRICS_BACKEND: clickhouse
+      CLICKHOUSE_ADDR:         clickhouse:9000
+      CLICKHOUSE_DB:           angelix
+      CLICKHOUSE_USER:         angelix
+      CLICKHOUSE_PASSWORD:     angelix
+    volumes:
+      - server_data:/data
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   clickhouse_data:
+  server_data:
