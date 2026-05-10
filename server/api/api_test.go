@@ -11,14 +11,14 @@ import (
 
 	"github.com/YumikoKawaii/angelix/pkg/apitypes"
 	"github.com/YumikoKawaii/angelix/server/api"
-	"github.com/YumikoKawaii/angelix/server/model"
+	"github.com/YumikoKawaii/angelix/server/metrics"
 	"github.com/YumikoKawaii/angelix/server/store"
 )
 
 const adminTok = "admin-secret"
 
 func newServer() *api.Server {
-	return api.NewServer(store.NewMemory(), adminTok)
+	return api.NewServer(store.NewMemory(), metrics.NewMemory(), adminTok)
 }
 
 func adminReq(method, path string, body any) *http.Request {
@@ -96,14 +96,12 @@ func TestGetCredentials_InvalidToken(t *testing.T) {
 func TestListMembers_AdminOnly(t *testing.T) {
 	srv := newServer()
 
-	// no token → 401
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/members", nil))
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("want 401, got %d", w.Code)
 	}
 
-	// admin token → 200
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, adminReq("GET", "/api/v1/members", nil))
 	if w.Code != http.StatusOK {
@@ -121,7 +119,6 @@ func TestDeleteMember(t *testing.T) {
 		t.Errorf("want 204, got %d", w.Code)
 	}
 
-	// credentials should now be gone
 	req := httptest.NewRequest("GET", "/api/v1/credentials", nil)
 	req.Header.Set("Authorization", "Bearer "+m.Token)
 	w = httptest.NewRecorder()
@@ -151,7 +148,6 @@ func TestOTELTraces(t *testing.T) {
 		t.Fatalf("want 200, got %d: %s", w.Code, w.Body)
 	}
 
-	// Check metrics summary
 	req = httptest.NewRequest("GET", "/api/v1/metrics", nil)
 	req.Header.Set("Authorization", "Bearer "+m.Token)
 	w = httptest.NewRecorder()
@@ -167,7 +163,14 @@ func TestOTELTraces(t *testing.T) {
 	}
 }
 
-// helpers for building OTLP JSON test payloads
+func TestHealth(t *testing.T) {
+	srv := newServer()
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, httptest.NewRequest("GET", "/health", nil))
+	if w.Code != http.StatusOK {
+		t.Errorf("want 200, got %d", w.Code)
+	}
+}
 
 type traceSpan struct {
 	name    string
@@ -213,23 +216,8 @@ func buildTracesPayload(spans []traceSpan) []byte {
 			Status:            status{Code: code},
 		})
 	}
-
 	b, _ := json.Marshal(payload{
 		ResourceSpans: []resourceSpan{{ScopeSpans: []scopeSpan{{Spans: ss}}}},
 	})
 	return b
 }
-
-func TestHealth(t *testing.T) {
-	srv := newServer()
-	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, httptest.NewRequest("GET", "/health", nil))
-	if w.Code != http.StatusOK {
-		t.Errorf("want 200, got %d", w.Code)
-	}
-}
-
-// Ensure memory store satisfies Store interface at compile time.
-var _ interface {
-	CreateMember(*model.Member) error
-} = (*store.Memory)(nil)

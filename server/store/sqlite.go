@@ -3,7 +3,6 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -19,22 +18,6 @@ CREATE TABLE IF NOT EXISTS members (
     api_key    TEXT NOT NULL,
     created_at DATETIME NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS spans (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id   TEXT    NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-    trace_id    TEXT    NOT NULL,
-    span_id     TEXT    NOT NULL,
-    name        TEXT    NOT NULL,
-    start_time  DATETIME NOT NULL,
-    end_time    DATETIME NOT NULL,
-    duration_ms INTEGER NOT NULL,
-    is_error    INTEGER NOT NULL DEFAULT 0,
-    recorded_at DATETIME NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_spans_member ON spans(member_id);
-CREATE INDEX IF NOT EXISTS idx_spans_name   ON spans(member_id, name);
 `
 
 type SQLite struct {
@@ -46,7 +29,7 @@ func NewSQLite(path string) (*SQLite, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
-	db.SetMaxOpenConns(1) // SQLite is single-writer
+	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(schema); err != nil {
 		return nil, fmt.Errorf("run schema: %w", err)
 	}
@@ -54,8 +37,6 @@ func NewSQLite(path string) (*SQLite, error) {
 }
 
 func (s *SQLite) Close() error { return s.db.Close() }
-
-// Member management
 
 func (s *SQLite) CreateMember(m *model.Member) error {
 	_, err := s.db.Exec(
@@ -120,68 +101,4 @@ func (s *SQLite) scanMember(row scanner) (*model.Member, error) {
 		return nil, fmt.Errorf("member not found")
 	}
 	return &m, err
-}
-
-// Telemetry
-
-func (s *SQLite) RecordSpans(memberID string, spans []*model.Span) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt, err := tx.Prepare(
-		`INSERT INTO spans (member_id, trace_id, span_id, name, start_time, end_time, duration_ms, is_error, recorded_at)
-		 VALUES (?,?,?,?,?,?,?,?,?)`,
-	)
-	if err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-	defer stmt.Close()
-
-	for _, sp := range spans {
-		isErr := 0
-		if sp.IsError {
-			isErr = 1
-		}
-		if _, err := stmt.Exec(
-			memberID, sp.TraceID, sp.SpanID, sp.Name,
-			sp.StartTime, sp.EndTime, sp.DurationMs, isErr,
-			time.Now().UTC(),
-		); err != nil {
-			_ = tx.Rollback()
-			return err
-		}
-	}
-	return tx.Commit()
-}
-
-func (s *SQLite) GetSpanSummary(memberID string) (*model.SpanSummary, error) {
-	rows, err := s.db.Query(
-		`SELECT name, COUNT(*) AS cnt,
-		        AVG(duration_ms) AS avg_ms,
-		        SUM(is_error) AS errs
-		 FROM spans WHERE member_id = ?
-		 GROUP BY name
-		 ORDER BY cnt DESC`,
-		memberID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	summary := &model.SpanSummary{MemberID: memberID}
-	for rows.Next() {
-		var ts model.ToolStat
-		var errs int
-		if err := rows.Scan(&ts.Name, &ts.Count, &ts.AvgMs, &errs); err != nil {
-			return nil, err
-		}
-		ts.ErrorRate = float64(errs) / float64(ts.Count)
-		summary.TotalSpans += ts.Count
-		summary.ErrorSpans += errs
-		summary.TopTools = append(summary.TopTools, ts)
-	}
-	return summary, rows.Err()
 }

@@ -68,25 +68,6 @@ func (s *Server) handleDeleteMember(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) handleAdminGetMetrics(w http.ResponseWriter, r *http.Request) {
-	memberID := r.PathValue("id")
-	summary, err := s.store.GetSpanSummary(memberID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load metrics")
-		return
-	}
-	tools := make([]apitypes.ToolStat, 0, len(summary.TopTools))
-	for _, t := range summary.TopTools {
-		tools = append(tools, apitypes.ToolStat{
-			Name: t.Name, Count: t.Count, AvgMs: t.AvgMs, ErrorRate: t.ErrorRate,
-		})
-	}
-	writeJSON(w, http.StatusOK, apitypes.MetricsSummaryResponse{
-		MemberID: summary.MemberID, TotalSpans: summary.TotalSpans,
-		ErrorSpans: summary.ErrorSpans, TopTools: tools,
-	})
-}
-
 func newToken(bytes int) string {
 	b := make([]byte, bytes)
 	_, _ = rand.Read(b)

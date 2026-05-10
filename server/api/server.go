@@ -6,18 +6,21 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/YumikoKawaii/angelix/server/metrics"
 	"github.com/YumikoKawaii/angelix/server/store"
 )
 
 type Server struct {
-	store      store.Store
+	store      store.Store    // member management (SQLite)
+	metrics    metrics.Store  // span storage (ClickHouse / DuckDB)
 	adminToken string
 	mux        *http.ServeMux
 }
 
-func NewServer(st store.Store, adminToken string) *Server {
+func NewServer(st store.Store, ms metrics.Store, adminToken string) *Server {
 	s := &Server{
 		store:      st,
+		metrics:    ms,
 		adminToken: adminToken,
 		mux:        http.NewServeMux(),
 	}
@@ -50,8 +53,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("request", "method", r.Method, "path", r.URL.Path)
 	s.mux.ServeHTTP(w, r)
 }
-
-// helpers
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
