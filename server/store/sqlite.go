@@ -34,6 +34,7 @@ var migrations = []migrate.Migration{
 	)`},
 	{Version: 4, SQL: `ALTER TABLE credentials RENAME COLUMN api_key TO access_token`},
 	{Version: 5, SQL: `ALTER TABLE credentials ADD COLUMN refresh_token TEXT NOT NULL DEFAULT ''`},
+	{Version: 6, SQL: `ALTER TABLE credentials DROP COLUMN refresh_token`},
 }
 
 type SQLite struct {
@@ -114,15 +115,15 @@ func (s *SQLite) DeleteMember(id string) error {
 
 func (s *SQLite) CreateCredential(c *model.Credential) error {
 	_, err := s.db.Exec(
-		`INSERT INTO credentials (id, name, access_token, refresh_token, created_at) VALUES (?,?,?,?,?)`,
-		c.ID, c.Name, c.AccessToken, c.RefreshToken, c.CreatedAt,
+		`INSERT INTO credentials (id, name, access_token, created_at) VALUES (?,?,?,?)`,
+		c.ID, c.Name, c.AccessToken, c.CreatedAt,
 	)
 	return err
 }
 
 func (s *SQLite) ListCredentials() ([]*model.Credential, error) {
 	rows, err := s.db.Query(
-		`SELECT id, name, access_token, refresh_token, created_at FROM credentials ORDER BY created_at`,
+		`SELECT id, name, access_token, created_at FROM credentials ORDER BY created_at`,
 	)
 	if err != nil {
 		return nil, err
@@ -132,7 +133,7 @@ func (s *SQLite) ListCredentials() ([]*model.Credential, error) {
 	var creds []*model.Credential
 	for rows.Next() {
 		var c model.Credential
-		if err := rows.Scan(&c.ID, &c.Name, &c.AccessToken, &c.RefreshToken, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.AccessToken, &c.CreatedAt); err != nil {
 			return nil, err
 		}
 		creds = append(creds, &c)
@@ -173,7 +174,7 @@ func (s *SQLite) UnassignCredential(memberID, credentialID string) error {
 
 func (s *SQLite) ListMemberCredentials(memberID string) ([]*model.Credential, error) {
 	rows, err := s.db.Query(`
-		SELECT c.id, c.name, c.access_token, c.refresh_token, c.created_at
+		SELECT c.id, c.name, c.access_token, c.created_at
 		FROM credentials c
 		JOIN member_credentials mc ON mc.credential_id = c.id
 		WHERE mc.member_id = ?
@@ -187,7 +188,7 @@ func (s *SQLite) ListMemberCredentials(memberID string) ([]*model.Credential, er
 	var creds []*model.Credential
 	for rows.Next() {
 		var c model.Credential
-		if err := rows.Scan(&c.ID, &c.Name, &c.AccessToken, &c.RefreshToken, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.AccessToken, &c.CreatedAt); err != nil {
 			return nil, err
 		}
 		creds = append(creds, &c)

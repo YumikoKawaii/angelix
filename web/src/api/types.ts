@@ -20,7 +20,6 @@ export interface CredentialItem {
 export interface CreateCredentialRequest {
   name: string
   access_token: string
-  refresh_token?: string
 }
 
 export interface AssignCredentialRequest {

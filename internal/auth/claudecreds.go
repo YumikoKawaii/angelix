@@ -11,13 +11,12 @@ type claudeCredFile struct {
 }
 
 type claudeOAuth struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken,omitempty"`
+	AccessToken string `json:"accessToken"`
 }
 
-// WriteClaudeCredentials writes OAuth tokens to ~/.claude/credentials.json,
+// WriteClaudeCredentials writes the OAuth access token to ~/.claude/credentials.json,
 // which is where Claude Code looks for authentication credentials.
-func WriteClaudeCredentials(accessToken, refreshToken string) error {
+func WriteClaudeCredentials(accessToken string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -29,10 +28,7 @@ func WriteClaudeCredentials(accessToken, refreshToken string) error {
 	}
 
 	data, err := json.MarshalIndent(claudeCredFile{
-		ClaudeAiOauth: claudeOAuth{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-		},
+		ClaudeAiOauth: claudeOAuth{AccessToken: accessToken},
 	}, "", "  ")
 	if err != nil {
 		return err

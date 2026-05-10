@@ -22,10 +22,7 @@ func (s *Server) handleGetCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(creds) > 0 {
-		writeJSON(w, http.StatusOK, apitypes.CredentialResponse{
-			AccessToken:  creds[0].AccessToken,
-			RefreshToken: creds[0].RefreshToken,
-		})
+		writeJSON(w, http.StatusOK, apitypes.CredentialResponse{AccessToken: creds[0].AccessToken})
 		return
 	}
 
@@ -60,11 +57,10 @@ func (s *Server) handleCreateCredential(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	c := &model.Credential{
-		ID:           newToken(16),
-		Name:         req.Name,
-		AccessToken:  req.AccessToken,
-		RefreshToken: req.RefreshToken,
-		CreatedAt:    time.Now().UTC(),
+		ID:          newToken(16),
+		Name:        req.Name,
+		AccessToken: req.AccessToken,
+		CreatedAt:   time.Now().UTC(),
 	}
 	if err := s.store.CreateCredential(c); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

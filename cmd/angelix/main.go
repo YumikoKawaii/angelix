@@ -38,7 +38,7 @@ func (c *RunCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	if err := auth.WriteClaudeCredentials(creds.AccessToken, creds.RefreshToken); err != nil {
+	if err := auth.WriteClaudeCredentials(creds.AccessToken); err != nil {
 		return fmt.Errorf("write claude credentials: %w", err)
 	}
 	return claudeexec.RunClaude(c.Args, otel.BuildEnv(otel.Config{

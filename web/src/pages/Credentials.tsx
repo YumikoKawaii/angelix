@@ -9,7 +9,7 @@ export function Credentials() {
   const [error, setError] = useState('')
 
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', access_token: '', refresh_token: '' })
+  const [form, setForm] = useState({ name: '', access_token: '' })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -36,7 +36,7 @@ export function Credentials() {
       const c = await api.catalog.create(form)
       setCreds(prev => [...prev, c])
       setShowCreate(false)
-      setForm({ name: '', access_token: '', refresh_token: '' })
+      setForm({ name: '', access_token: '' })
     } catch (e) {
       setCreateError(String(e))
     } finally {
@@ -135,16 +135,6 @@ export function Credentials() {
                 required
                 className="hud-input"
                 placeholder="OAuth access token"
-              />
-            </div>
-            <div>
-              <label className="hud-label">REFRESH TOKEN <span style={{ color: 'var(--c-muted)', fontSize: '0.6rem' }}>(OPTIONAL)</span></label>
-              <input
-                type="password"
-                value={form.refresh_token}
-                onChange={e => setForm(f => ({ ...f, refresh_token: e.target.value }))}
-                className="hud-input"
-                placeholder="OAuth refresh token"
               />
             </div>
             {createError && (
