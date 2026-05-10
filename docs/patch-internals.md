@@ -217,6 +217,38 @@ The patched binary is exec'd in place of the original. The `OTEL_EXPORTER_OTLP_E
 
 ---
 
+## Alternative Considered: Claude's Built-in OTEL Tracer
+
+Investigated using Claude's own OTEL SDK to emit rate-limit spans instead of the custom `fetch()` (v2.1.138). Rejected — current approach is better for this use case.
+
+### How Claude's OTEL is structured
+
+- `X3` = `@opentelemetry/api` module, assigned once inside a lazy init block: `X3=m(j4(),1)`
+- `oN()` = the getTracer wrapper: `return X3.trace.getTracer("com.anthropic.claude_code.tracing","1.0.0")`
+- A real OTLP provider is registered at startup via two paths:
+  1. `BETA_TRACING_ENDPOINT` env var → Anthropic internal, irrelevant to us
+  2. Enhanced telemetry path: activates only if **both** `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=true` **and** `OTEL_TRACES_EXPORTER=otlp`. Reads `OTEL_EXPORTER_OTLP_ENDPOINT` and calls `setGlobalTracerProvider(...)`.
+
+### Why timing would be fine (proxy pattern)
+
+`oN()` returns a `ProxyTracer` backed by `ProxyTracerProvider`. OTEL's proxy handles late provider registration — by the time `L48` fires on the first real API request, `setGlobalTracerProvider` has already run and the proxy delegates to the real OTLP exporter.
+
+### Why we rejected this approach
+
+1. **All of Claude's own spans flood our server.** Enabling `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=true` causes Claude to export every interaction, tool_use, and internal span to `OTEL_EXPORTER_OTLP_ENDPOINT` — not just our rate-limit spans. Significant extra volume to filter or store.
+2. **Another unstable minified name.** `oN` changes every release. The anchor would be the string `"com.anthropic.claude_code.tracing"` — doable, but adds another fragility point.
+3. **Current `fetch()` approach already works** — self-contained, emits only rate-limit data, no dependency on Claude's internal telemetry flag.
+
+### When to reconsider
+
+If parent span correlation is ever needed (linking rate-limit spans to their parent interaction span), this approach becomes worthwhile. Path to implement:
+1. Set `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=true` and `OTEL_TRACES_EXPORTER=otlp` in `internal/otel/env.go`
+2. Extract the getTracer wrapper name via anchor string `"com.anthropic.claude_code.tracing"`
+3. Replace `_ax_emit`'s `fetch()` with a call to `oN().startSpan("angelix.rate_limit", ...)`
+4. Handle the extra Claude spans in `server/otlp/parser.go` (filter or store separately)
+
+---
+
 ## Key Files
 
 | File | Purpose |
