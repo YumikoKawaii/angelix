@@ -22,17 +22,14 @@ func (s *Server) handleGetCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(creds) > 0 {
-		writeJSON(w, http.StatusOK, apitypes.CredentialResponse{APIKey: creds[0].APIKey})
+		writeJSON(w, http.StatusOK, apitypes.CredentialResponse{
+			AccessToken:  creds[0].AccessToken,
+			RefreshToken: creds[0].RefreshToken,
+		})
 		return
 	}
 
-	// Fallback: member's direct api_key (legacy)
-	member, err := s.store.GetMemberByID(memberID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load member")
-		return
-	}
-	writeJSON(w, http.StatusOK, apitypes.CredentialResponse{APIKey: member.APIKey})
+	writeError(w, http.StatusNotFound, "no credentials assigned to this member")
 }
 
 // handleListCredentials lists all credentials in the catalog (admin).
@@ -58,15 +55,16 @@ func (s *Server) handleCreateCredential(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.Name == "" || req.APIKey == "" {
-		writeError(w, http.StatusBadRequest, "name and api_key are required")
+	if req.Name == "" || req.AccessToken == "" {
+		writeError(w, http.StatusBadRequest, "name and access_token are required")
 		return
 	}
 	c := &model.Credential{
-		ID:        newToken(16),
-		Name:      req.Name,
-		APIKey:    req.APIKey,
-		CreatedAt: time.Now().UTC(),
+		ID:           newToken(16),
+		Name:         req.Name,
+		AccessToken:  req.AccessToken,
+		RefreshToken: req.RefreshToken,
+		CreatedAt:    time.Now().UTC(),
 	}
 	if err := s.store.CreateCredential(c); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

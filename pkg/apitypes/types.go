@@ -5,14 +5,16 @@ import "time"
 // Credential endpoints (wrapper-facing)
 
 type CredentialResponse struct {
-	APIKey string `json:"api_key"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // Credential catalog (admin)
 
 type CreateCredentialRequest struct {
-	Name   string `json:"name"`
-	APIKey string `json:"api_key"`
+	Name         string `json:"name"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type CredentialItem struct {

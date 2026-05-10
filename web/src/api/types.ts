@@ -19,7 +19,8 @@ export interface CredentialItem {
 
 export interface CreateCredentialRequest {
   name: string
-  api_key: string
+  access_token: string
+  refresh_token?: string
 }
 
 export interface AssignCredentialRequest {

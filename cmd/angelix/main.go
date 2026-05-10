@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/alecthomas/kong"
 
 	"github.com/YumikoKawaii/angelix/internal/auth"
@@ -36,14 +38,13 @@ func (c *RunCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	extraEnv := append(
-		otel.BuildEnv(otel.Config{
-			ServerURL:   cfg.ServerURL,
-			MemberToken: cfg.MemberToken,
-		}),
-		"ANTHROPIC_API_KEY="+creds.APIKey,
-	)
-	return claudeexec.RunClaude(c.Args, extraEnv)
+	if err := auth.WriteClaudeCredentials(creds.AccessToken, creds.RefreshToken); err != nil {
+		return fmt.Errorf("write claude credentials: %w", err)
+	}
+	return claudeexec.RunClaude(c.Args, otel.BuildEnv(otel.Config{
+		ServerURL:   cfg.ServerURL,
+		MemberToken: cfg.MemberToken,
+	}))
 }
 
 func main() {
