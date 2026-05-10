@@ -5,18 +5,15 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ui /app/web/dist ./web/dist
-RUN CGO_ENABLED=1 go build -trimpath -o /bin/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /bin/server ./cmd/server
 
-FROM debian:bookworm-slim
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates tzdata \
- && rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/static:nonroot
 COPY --from=builder /bin/server /server
 EXPOSE 8080
 ENTRYPOINT ["/server"]

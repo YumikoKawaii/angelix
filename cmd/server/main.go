@@ -17,14 +17,12 @@ import (
 )
 
 var cfg struct {
-	AdminToken     string `env:"ANGELIX_ADMIN_TOKEN"     required:"" help:"Admin authentication token"`
-	Port           string `env:"PORT"                    default:"8080"       help:"HTTP listen port"`
-	DB             string `env:"ANGELIX_DB"              default:"angelix.db" help:"SQLite path for member store"`
-	Debug          bool   `env:"DEBUG"                                        help:"Enable debug logging"`
-	MetricsBackend string `env:"ANGELIX_METRICS_BACKEND" default:"clickhouse" enum:"clickhouse,duckdb" help:"Metrics storage backend"`
+	AdminToken string `env:"ANGELIX_ADMIN_TOKEN" required:"" help:"Admin authentication token"`
+	Port       string `env:"PORT"                default:"8080"       help:"HTTP listen port"`
+	DB         string `env:"ANGELIX_DB"          default:"angelix.db" help:"SQLite path for member store"`
+	Debug      bool   `env:"DEBUG"                                    help:"Enable debug logging"`
 
 	ClickHouse metrics.ClickHouseConfig `embed:"" prefix:"clickhouse-"`
-	DuckDB     metrics.DuckDBConfig     `embed:"" prefix:"duckdb-"`
 }
 
 func main() {
@@ -43,9 +41,10 @@ func main() {
 	}
 	defer memberStore.Close()
 
-	metricsStore, err := openMetricsStore()
+	slog.Info("metrics backend: clickhouse", "addr", cfg.ClickHouse.Addr, "db", cfg.ClickHouse.Database)
+	metricsStore, err := metrics.NewClickHouse(cfg.ClickHouse)
 	if err != nil {
-		slog.Error("failed to open metrics store", "backend", cfg.MetricsBackend, "err", err)
+		slog.Error("failed to open metrics store", "err", err)
 		os.Exit(1)
 	}
 	defer metricsStore.Close()
@@ -59,7 +58,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("server started", "addr", srv.Addr, "metrics_backend", cfg.MetricsBackend)
+		slog.Info("server started", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "err", err)
 			os.Exit(1)
@@ -77,17 +76,6 @@ func main() {
 		slog.Error("shutdown error", "err", err)
 	}
 	slog.Info("stopped")
-}
-
-func openMetricsStore() (metrics.Store, error) {
-	switch cfg.MetricsBackend {
-	case "clickhouse":
-		slog.Info("metrics backend: clickhouse", "addr", cfg.ClickHouse.Addr, "db", cfg.ClickHouse.Database)
-		return metrics.NewClickHouse(cfg.ClickHouse)
-	default: // duckdb
-		slog.Info("metrics backend: duckdb", "path", cfg.DuckDB.Path)
-		return metrics.NewDuckDB(cfg.DuckDB)
-	}
 }
 
 func initLogger(debug bool) {

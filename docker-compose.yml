@@ -29,7 +29,6 @@ services:
       PORT:                    8080
       ANGELIX_DB:              /data/angelix.db
       DEBUG:                   ${DEBUG:-0}
-      ANGELIX_METRICS_BACKEND: clickhouse
       CLICKHOUSE_ADDR:         clickhouse:9000
       CLICKHOUSE_DB:           angelix
       CLICKHOUSE_USER:         angelix
